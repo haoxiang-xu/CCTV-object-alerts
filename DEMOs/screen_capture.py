@@ -29,7 +29,7 @@ def load_fonts():
         font = ImageFont.load_default()
     return font
         
-def screen_capture(fames_per_second = 16):
+def screen_capture(frames_per_second = 16):
     # Set up the display window name
     cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
     
@@ -45,7 +45,7 @@ def screen_capture(fames_per_second = 16):
         cv2.imshow('Screen Capture', screen_np)
 
         # Wait for 100 milliseconds (1 second)
-        if cv2.waitKey(1000//fames_per_second) & 0xFF == ord('q'):
+        if cv2.waitKey(1000//frames_per_second) & 0xFF == ord('q'):
             break
 
         # Check if the window is closed
@@ -54,7 +54,7 @@ def screen_capture(fames_per_second = 16):
 
     # Close all OpenCV windows
     cv2.destroyAllWindows()
-def screen_capture_and_detect(fames_per_second = 16, resize_dimension = (640, 480), object_confidence_threshold = 0.08, remove_large_objects = True, person_detection_only = False):
+def screen_capture_and_detect(frames_per_second = 16, resize_dimension = (640, 480), object_confidence_threshold = 0.08, remove_large_objects = True, person_detection_only = False):
     # Initialize the YOLO model
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = YOLO("../MODELs/yolov8n").to(device)
@@ -71,6 +71,10 @@ def screen_capture_and_detect(fames_per_second = 16, resize_dimension = (640, 48
             if i >= bg_color_ranges[color][0] and i < bg_color_ranges[color][1]:
                 color_labels.append(color)
                 break
+    
+    recording = False
+    video_writer = None
+    video_file_path = "output.avi"
     
     while True:
         # Capture the screen
@@ -122,16 +126,38 @@ def screen_capture_and_detect(fames_per_second = 16, resize_dimension = (640, 48
                 draw.rectangle(text_bg, fill=filling_color[0])
                 draw.text((x1+2, max(y1 - 16,0)), label, fill=filling_color[1], font=font)  # Draw the label    
         
+        # Draw Recording Indicator
+        if recording:
+            draw.rectangle([0, 0, resize_dimension[0], 4], fill="red", width=3)
+        
         screen_np = np.array(screen_resized)
         # Convert the color space from BGR (OpenCV default) to RGB
         screen_np = cv2.cvtColor(screen_np, cv2.COLOR_BGR2RGB)
+        
+        if recording:
+            if video_writer is None:  # Start new video writer
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                video_writer = cv2.VideoWriter(video_file_path, fourcc, frames_per_second, resize_dimension)
+            video_writer.write(screen_np)  # Write frame to video file
 
         # Display the captured screen
         cv2.imshow('Screen Capture', screen_np)
 
         # Wait for 1000 milliseconds (1 second)
-        if cv2.waitKey(1000//fames_per_second) & 0xFF == ord('q'):
+        key = cv2.waitKey(1000//frames_per_second) & 0xFF
+        if key == ord('q'):
             break
+        elif key == ord('r'):
+            if recording:
+                # Stop recording and release the video writer
+                recording = False
+                video_writer.release()
+                video_writer = None
+                print("Recording stopped and saved.")
+            else:
+                # Start recording
+                recording = True
+                print("Recording started.")
 
         # Check if the window is closed
         if cv2.getWindowProperty('Screen Capture', cv2.WND_PROP_VISIBLE) < 1:
@@ -141,9 +167,9 @@ def screen_capture_and_detect(fames_per_second = 16, resize_dimension = (640, 48
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    default_fames_per_second = 16
+    default_frames_per_second = 16
     default_resize_dimension = (768, 432)
     default_object_confidence_threshold = 0.32
     
-    screen_capture_and_detect(60, (1920, 1080), person_detection_only=False)
+    screen_capture_and_detect(16, (1920, 1080), person_detection_only=False)
     
