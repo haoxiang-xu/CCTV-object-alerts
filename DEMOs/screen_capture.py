@@ -3,6 +3,7 @@ import cv2
 import torch
 import platform
 import numpy as np
+import tkinter as tk
 from PIL import ImageGrab, Image, ImageDraw, ImageFont
 from PIL.Image import Resampling
 from ultralytics import YOLO
@@ -140,9 +141,9 @@ def screen_capture_and_detect(fames_per_second = 16, resize_dimension = (640, 48
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    print(torch.__version__)
-    print(torch.cuda.is_available())
     default_fames_per_second = 16
     default_resize_dimension = (768, 432)
     default_object_confidence_threshold = 0.32
+    
     screen_capture_and_detect(60, (1920, 1080), person_detection_only=False)
+    
