@@ -4,6 +4,9 @@
 
 #### 1.0 从视频的每一帧中提取出现的动物，人物等等所有出现在【可被检测物体清单】中的所有单位
 ![Screenshot 2024-04-24 165643](https://github.com/haoxiang-xu/CCTV-object-alerts/assets/59581718/89cab28c-645e-4884-a519-b9d3ef0ee24b)
+
+![Screenshot 2024-04-24 173422](https://github.com/haoxiang-xu/CCTV-object-alerts/assets/59581718/a5ad1151-0c01-46e3-a744-d901c19163a1)
+
 <span style="opacity: 0.64">1.1 【视频信息获取源】 程序将每秒持续获取监控软件的录频，也就是说该程序是以持续正对特定软件的录频来获取视频源的，这也就意味着：</span><br>
 <span style="opacity: 0.64">1.1.1 该程序的视频源可以是任何被显示在计算机屏幕上的画面（包括被其他程序窗口遮挡的画面）</span><br>
 <span style="opacity: 0.64">1.1.2 当该程序运行时，被检测画面必须保持开启，且不能最小化窗口</span>
