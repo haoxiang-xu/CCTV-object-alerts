@@ -1,5 +1,9 @@
+const express = require("express");
 const https = require("https");
 const crypto = require("crypto");
+const app = express();
+require("dotenv").config();
+const PORT = process.env.PORT;
 
 const generateSignature = (appSecret) => {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -57,14 +61,6 @@ const fetchAccessToken = () => {
             response.result.code === "0" &&
             response.result.data
           ) {
-            const currentTime = new Date();
-            const expireDuration = response.result.data.expireTime;
-            const expireDate = new Date(
-              currentTime.getTime() + expireDuration * 1000
-            );
-            console.log("Current time:", currentTime.toISOString());
-            console.log("Expire time:", expireDate.toISOString());
-            console.log("Response:", response);
             resolve(response.result.data.accessToken);
           } else {
             reject(new Error("No token received or error in response"));
@@ -82,13 +78,20 @@ const fetchAccessToken = () => {
   });
 };
 
-let accessToken;
-fetchAccessToken()
-  .then((token) => {
-    accessToken = token;
-    console.log("Access Token:", accessToken);
-  })
-  .catch((error) => {
-    console.log("Error:", error.message);
-    accessToken = null;
-  });
+app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/public/index.html");
+});
+app.get("/token", async (req, res) => {
+  try {
+    const token = await fetchAccessToken();
+    res.json({ accessToken: token });
+  } catch (error) {
+    res.status(500).send("Failed to retrieve token");
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});

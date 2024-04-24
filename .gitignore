@@ -1,5 +1,8 @@
 MODELs/yolov8n.pt
 
+*/node_modules/*
+**/node_modules/*
+
 .DS_Store
 .venv
 .env
