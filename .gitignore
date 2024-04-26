@@ -1,9 +1,8 @@
 cctv_object_alert_services/node_modules
-MODELs/yolov8n.pt
+MODELs
 
 */node_modules/*
 **/node_modules/*
 
+LOCAL_ENV
 .DS_Store
-.venv
-.env
