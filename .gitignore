@@ -1,8 +1,4 @@
-cctv_object_alert_services/node_modules
 MODELs
-
-*/node_modules/*
-**/node_modules/*
-
+DATASET
 LOCAL_ENV
 .DS_Store

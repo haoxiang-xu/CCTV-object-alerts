@@ -1,7 +1,9 @@
 import os
 import cv2
+import time
 import torch
 import requests
+import datetime
 import platform
 import numpy as np
 import tkinter as tk
@@ -46,12 +48,13 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
                                   remove_oversize_objects = True, 
                                   person_detection_only = False,
                                   # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
-                                  segmentation_on_person_option = "NONE", # [OPTIONS] "NONE", "SEGFORMER-B5", "SEGFORMER-B5-MAX-SIZE/X", "SEGFORMER-B5-MAX-CONF/X"  
+                                  segmentation_on_person_option = "NONE", # [OPTIONS] "NONE", "SEGFORMER-B5", "SEGFORMER-B5-MAX-SIZE/X", "SEGFORMER-B5-MAX-CONF/X"
+                                  collecting_person_patches = "NONE", # [OPTIONS] "NONE", "SAVE_EVERY_N_SECONDS/X"
                                   # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
                                   verbose = False):
     #FUNCTIONS -------------------------------------------------------------------------------------------------------------------FUNCTIONS
     def loading_label_fonts():
-        font_path_mac = "../FONTs/STHeiti Light.ttc"
+        font_path_mac = "./FONTs/STHeiti Light.ttc"
         font_path_win = "./FONTs/Quicksand-VariableFont_wght.ttf"
 
         if platform.system() == "Darwin":  # macOS
@@ -70,20 +73,21 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         return font       
     def loading_yolo_v8_models(yolo_v8_size, device):
         if yolo_v8_size == "NANO":
-            model = YOLO("../MODELs/yolov8n").to(device)
+            model = YOLO("./MODELs/yolov8n").to(device)
         elif yolo_v8_size == "SMALL":
-            model = YOLO("../MODELs/yolov8s").to(device)
+            model = YOLO("./MODELs/yolov8s").to(device)
         elif yolo_v8_size == "MEDIUM":
-            model = YOLO("../MODELs/yolov8m").to(device)
+            model = YOLO("./MODELs/yolov8m").to(device)
         elif yolo_v8_size == "LARGE":
-            model = YOLO("../MODELs/yolov8l").to(device)
+            model = YOLO("./MODELs/yolov8l").to(device)
         elif yolo_v8_size == "EXTRA-LARGE":
-            model = YOLO("../MODELs/yolov8x").to(device)
+            model = YOLO("./MODELs/yolov8x").to(device)
         else:
-            model = YOLO("../MODELs/yolov8n").to(device)
+            model = YOLO("./MODELs/yolov8n").to(device)
         print(f"[PROCESS] ------ [Yolo v8 {yolo_v8_size} is loaded into {device}]")
         return model
-    def loading_segformer_b5_models(model_dir, model_id, device):
+    def loading_segformer_b5_models(device):
+        model_dir = "./Models/segformer-b5-finetuned-human-parsing"
         print(f"[PROCESS] ------ [Segformer b5 is loaded into {device}]")
         model = SegformerForSemanticSegmentation.from_pretrained(model_dir).to(device)
         image_processor = SegformerImageProcessor.from_pretrained(model_dir)
@@ -213,6 +217,16 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         blended_picture = apply_segmentation_mask_on_picture(person_patch, decoded_mask, alpha=0.5)
         
         return blended_picture
+    def extract_and_save_person_patches(collecting_person_patches, person_patch, conf, CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS):
+        if "SAVE_EVERY_N_SECONDS" in collecting_person_patches and CURRENT_FRAME_TIME - PREVIOUS_FRAME_TIME > COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS or CURRENT_FRAME_TIME == PREVIOUS_FRAME_TIME:
+            folder_path = "./DATASET"
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            filename = f"person_patch_{timestamp}_{round(conf,2)}.png"
+            person_patch.save(os.path.join(folder_path, filename))
+            return True
+        return False  
     #FUNCTIONS ----------------------------------------------------------------------------------------------------------------------------   
      
     #CONSTs -------------------------------------------------------------------------------------------------------------------------CONSTs
@@ -222,6 +236,9 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
     SEGFORMER_B5_CLOTHING_LABELS = ["Background", "Hat", "Hair", "Sunglasses", " Upper-clothes", "Skirt", "Pants", "Dress", "Belt", "Left-shoe", "Right-shoe", "Face", "Left-leg", "Right-leg", "Left-arm", "Right-arm", "Bag", "Scarf"]
     FONT = loading_label_fonts()
     LABEL_BACKGROUND_COLOR = []
+    COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS = 0
+    if "SAVE_EVERY_N_SECONDS" in collecting_person_patches:
+        COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS = int(collecting_person_patches.split("/")[1])
     for i in range(0,80):
         for color in YOLOV8_LABEL_BACKGROUND_COLORS:
             if i >= YOLOV8_LABEL_BACKGROUND_COLORS[color][0] and i < YOLOV8_LABEL_BACKGROUND_COLORS[color][1]:
@@ -234,6 +251,7 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
     TOTAL_OBJECTS_REMOVED_BY_OVERLAPPING = 0
     TOTAL_OBJECTS_REMOVED_BY_CONFIDENCE = 0
     TOTAL_OVERSIZE_OBJECTS_REMOVED = 0
+    PREVIOUS_FRAME_TIME = time.time()
     #OUTER STATIC VARIABLES ---------------------------------------------------------------------------------------------------------------
     
     #RECORDING VARIABLES ===============================================================================================RECORDING VARIABLES
@@ -246,19 +264,21 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     yolo_v8_model = loading_yolo_v8_models(yolo_v8_size, device)
     if segmentation_on_person_option != "NONE":
-        segformer_b5_model, segformer_b5_image_processor = loading_segformer_b5_models("../Models/segformer-b5-finetuned-human-parsing", "matei-dorian/segformer-b5-finetuned-human-parsing", device)
+        segformer_b5_model, segformer_b5_image_processor = loading_segformer_b5_models(device)
     #LOAD REQUIRED MODELS -----------------------------------------------------------------------------------------------------------------
 
     cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
-    
+
     while True:
         #INTER STATIC VARIABLES ------------------------------------------------------------------------------------------------INTER STATIC VARIABLES
         OBJECT_REMOVED_FOR_THIS_FRAME = 0
+        CURRENT_FRAME_TIME = time.time()
         #INTER STATIC VARIABLES ----------------------------------------------------------------------------------------------------------------------
         
         original_picture = ImageGrab.grab()
         reshape_picture = original_picture.resize(ADJUSTED_DIMENSION, Resampling.LANCZOS)
-        tensor_picture = torch.from_numpy(np.array(reshape_picture)).permute(2, 0, 1).float().div(255).unsqueeze(0).to(device)
+        drawing_picture = reshape_picture.copy()
+        tensor_picture = torch.from_numpy(np.array(drawing_picture)).permute(2, 0, 1).float().div(255).unsqueeze(0).to(device)
         raw_model_output = yolo_v8_model(tensor_picture, verbose=False)
         
         # EXTRACT RESULTS -------------------------------------------------------------------------------------------------------------------
@@ -272,7 +292,7 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
             segmentation_await_box_index =  filter_segmentation_await_box_index(segmentation_on_person_option, boxes, cls, conf)
         # EXTRACT RESULTS -------------------------------------------------------------------------------------------------------------------
 
-        draw = ImageDraw.Draw(reshape_picture)
+        draw = ImageDraw.Draw(drawing_picture)
         
         # DRAWING =============================================================================================================DRAWING
         for index in range(len(boxes)):
@@ -307,7 +327,11 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
             if segmentation_on_person_option != "NONE" and segmentation_await_box_index is not None and index in segmentation_await_box_index:
                 person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
                 blended_patch = segmentation_picture_with_segformer_b5(person_patch, segformer_b5_model, segformer_b5_image_processor, SEGFORMER_B5_CLOTHING_LABELS)
-                reshape_picture.paste(blended_patch, (int(x1), int(y1)))
+                drawing_picture.paste(blended_patch, (int(x1), int(y1)))
+            if collecting_person_patches != "NONE":
+                person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
+                if extract_and_save_person_patches(collecting_person_patches, person_patch, conf[index], CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS):
+                    PREVIOUS_FRAME_TIME = CURRENT_FRAME_TIME
             # EXTRACT PERSON PATCH =======================================================================================================
             
             # DRAWING =============================================================================================================DRAWING
@@ -320,7 +344,7 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         
         if is_recording:
             draw.rectangle([0, 0, input_frame_dimension[0], 4], fill="red", width=3)
-        screen_np = np.array(reshape_picture)
+        screen_np = np.array(drawing_picture)
         screen_np = cv2.cvtColor(screen_np, cv2.COLOR_BGR2RGB)
         if is_recording:
             if video_writer is None:  # Start new video writer
@@ -470,10 +494,14 @@ if __name__ == "__main__":
     screen_detection_segmentation(yolo_v8_size = "LARGE",
                                       max_frames_per_second = default_frames_per_second,
                                       input_frame_dimension = (1920, 1080), 
-                                      person_detection_only=False, 
+                                      # Filtering Conditions ------------------------------------------------------------------------------------- Filtering Conditions
+                                      person_detection_only = True, 
                                       object_confidence_threshold = 0.32,
                                       remove_oversize_objects=True, 
-                                      segmentation_on_person_option = "SEGFORMER-B5-MAX-CONF/4",
-                                      verbose=True)
+                                      # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
+                                      segmentation_on_person_option = "NONE",
+                                      collecting_person_patches = "SAVE_EVERY_N_SECONDS/12",
+                                      # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
+                                      verbose=False)
     #screen_capture_and_detect_segformer_b5(default_frames_per_second, (1920, 1080))
     
