@@ -38,39 +38,62 @@ def screen_capture(frames_per_second = 16):
 
     # Close all OpenCV windows
     cv2.destroyAllWindows()
-def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
-                                      frames_per_second = 16, 
-                                      resize_dimension = (640, 480), 
-                                      object_confidence_threshold = 0.08, 
-                                      remove_large_objects = True, 
-                                      person_detection_only = False, 
-                                      verbose = False):
+def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SMALL", "MEDIUM", "LARGE", "EXTRA-LARGE"
+                                  max_frames_per_second = 16, 
+                                  input_frame_dimension = (640, 480), 
+                                  # Filtering Conditions ------------------------------------------------------------------------------------- Filtering Conditions
+                                  object_confidence_threshold = 0.08,
+                                  remove_oversize_objects = True, 
+                                  person_detection_only = False,
+                                  # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
+                                  segmentation_on_person_option = "NONE", # [OPTIONS] "NONE", "SEGFORMER-B5", "SEGFORMER-B5-MAX-SIZE/X", "SEGFORMER-B5-MAX-CONF/X"  
+                                  # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
+                                  verbose = False):
     #FUNCTIONS -------------------------------------------------------------------------------------------------------------------FUNCTIONS
-    def load_fonts():
+    def loading_label_fonts():
         font_path_mac = "../FONTs/STHeiti Light.ttc"
         font_path_win = "./FONTs/Quicksand-VariableFont_wght.ttf"
-        
+
         if platform.system() == "Darwin":  # macOS
             try:
                 font = ImageFont.truetype(font_path_mac, 16)
             except IOError as e:
-                print(f"Failed to load macOS font: {e}")
+                print(f"[ERROR] -------- [Failed to load macOS font from {font_path_mac} due to {e}]")
         elif platform.system() == "Windows":  # Windows
             try:
                 font = ImageFont.truetype(os.path.abspath(font_path_win), 16)
             except IOError as e:
-                print(f"Failed to load Windows font: {e}")
-                print(os.path.abspath(font_path_win))
+                print(f"[ERROR] -------- [Failed to load Windows font from {os.path.abspath(font_path_win)} due to {e}]")
         else:
-            print("Unsupported OS. Loading default font.")
+            print(f"[WARNING] ------ [Unsupported OS. Loading default font.]")
             font = ImageFont.load_default()
         return font       
-    def adjust_size_to_model(input_size, stride=32):
+    def loading_yolo_v8_models(yolo_v8_size, device):
+        if yolo_v8_size == "NANO":
+            model = YOLO("../MODELs/yolov8n").to(device)
+        elif yolo_v8_size == "SMALL":
+            model = YOLO("../MODELs/yolov8s").to(device)
+        elif yolo_v8_size == "MEDIUM":
+            model = YOLO("../MODELs/yolov8m").to(device)
+        elif yolo_v8_size == "LARGE":
+            model = YOLO("../MODELs/yolov8l").to(device)
+        elif yolo_v8_size == "EXTRA-LARGE":
+            model = YOLO("../MODELs/yolov8x").to(device)
+        else:
+            model = YOLO("../MODELs/yolov8n").to(device)
+        print(f"[PROCESS] ------ [Yolo v8 {yolo_v8_size} is loaded into {device}]")
+        return model
+    def loading_segformer_b5_models(model_dir, model_id, device):
+        print(f"[PROCESS] ------ [Segformer b5 is loaded into {device}]")
+        model = SegformerForSemanticSegmentation.from_pretrained(model_dir).to(device)
+        image_processor = SegformerImageProcessor.from_pretrained(model_dir)
+        return model, image_processor
+    def convert_input_dimension_to_GPU_dimension(input_size, stride=32):
         # Adjust size so it's divisible by the model's stride
         new_width = (input_size[0] // stride) * stride
         new_height = (input_size[1] // stride) * stride
         return (new_width, new_height)
-    def filter_rectangles(boxes, classes, confidences):
+    def filter_overlapping_detectations(boxes, classes, confidences):
         # Convert to a PyTorch tensor if not already one
         if not isinstance(boxes, torch.Tensor):
             boxes = torch.tensor(boxes)
@@ -109,17 +132,99 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
         filtered_confidences = confidences[torch.tensor(to_remove) == False]
 
         return filtered_boxes, filtered_classes.tolist(), filtered_confidences.tolist(), len(boxes) - len(filtered_boxes)
+    def filter_segmentation_await_box_index(segmentation_on_person_option, boxes, classes, confidences):
+        if segmentation_on_person_option == "NONE":
+            return None
+        elif segmentation_on_person_option == "SEGFORMER-B5":
+            return [index for index, cls in enumerate(classes) if cls == 0]
+        elif "SEGFORMER-B5-MAX-SIZE" in segmentation_on_person_option:
+            x = int(segmentation_on_person_option.split("/")[1])
+            if isinstance(boxes, torch.Tensor):
+                boxes = boxes.cpu().numpy()
+            cls = np.array(classes)
+            indices_where_cls_is_zero = np.where(cls == 0)[0]
+            filtered_boxes = boxes[indices_where_cls_is_zero]
+            try:
+                areas = (filtered_boxes[:, 2] - filtered_boxes[:, 0]) * (filtered_boxes[:, 3] - filtered_boxes[:, 1])
+            except IndexError:
+                print(f"[ERROR] -------- [Failed to Sort Boxes by Area due to IndexError]")
+                return []
+            sorted_indices_by_area = np.argsort(-areas)
+            top_x_indices = indices_where_cls_is_zero[sorted_indices_by_area][:x]
+            return top_x_indices
+        elif "SEGFORMER-B5-MAX-CONF" in segmentation_on_person_option:
+            x = int(segmentation_on_person_option.split("/")[1])
+            if isinstance(boxes, torch.Tensor):
+                boxes = boxes.cpu().numpy()
+            cls = np.array(classes)
+            conf = np.array(confidences)
+            indices_where_cls_is_zero = np.where(cls == 0)[0]
+            filtered_conf = conf[indices_where_cls_is_zero]
+            try:
+                sorted_indices = np.argsort(-filtered_conf)
+                original_indices_sorted_by_conf = indices_where_cls_is_zero[sorted_indices]
+            except IndexError:
+                print(f"[ERROR] -------- [Failed to Sort Boxes by Conf due to IndexError]")
+                return []
+            return original_indices_sorted_by_conf[:x]
+        else:
+            return None
+    def decode_segmentation_mask(mask, labels):
+        label_colors = np.array([
+            [0, 0, 0],         # Background ----- Black
+            [255, 255, 255],   # Hat --------------------------------------------------- White
+            [133, 27, 27],     # Hair ----------- Brown#1
+            [255, 0, 0],       # Sunglasses
+            [255, 61, 0],      # Upper-clothes ---------------------- Red#2
+            [42, 21, 171],     # Skirt ----------- Blue#2
+            [255, 255, 255],   # Pants ------------------------------------------------- White
+            [98, 28, 15],      # Dress ---------- Brown#2
+            [128, 0, 128],     # Belt
+            [154, 23, 156],    # Left-shoe ------------------------ Purple    
+            [154, 23, 156],    # Right-shoe ----------------------- Purple
+            [236, 150, 135],   # Face ------------------ Orange
+            [236, 150, 135],   # Left-leg -------------- Orange
+            [236, 150, 135],   # Right-leg ------------- Orange
+            [236, 150, 135],   # Left-arm -------------- Orange
+            [236, 150, 135],   # Right-arm ------------- Orange
+            [75, 0, 130],      # Bag
+            [0, 128, 128]      # Scarf
+        ])
+        # Ensure label_colors covers all the labels present in the mask
+        color_mask = label_colors[mask]
+        return Image.fromarray(color_mask.astype(np.uint8))
+    def apply_segmentation_mask_on_picture(original_image, mask, alpha=0.96):
+        image_array = np.array(original_image)
+        mask_resized = mask.resize(original_image.size, resample=Image.BILINEAR)
+        mask_array = np.array(mask_resized)
+        blended_image = (1 - alpha) * image_array + alpha * mask_array
+        blended_image = blended_image.astype(np.uint8)
+        return Image.fromarray(blended_image)
+    def segmentation_picture_with_segformer_b5(person_patch, model, processor, SEGFORMER_B5_CLOTHING_LABELS):
+        raw_model_inputs = processor(images=person_patch, return_tensors='pt')
+        inputs = raw_model_inputs.to(model.device)
+        
+        with torch.no_grad():
+            outputs = model(**inputs)
+        segmentation_mask = outputs.logits.argmax(dim=1).squeeze().cpu().numpy()
+        
+        original_picture = raw_model_inputs
+        decoded_mask = decode_segmentation_mask(segmentation_mask, SEGFORMER_B5_CLOTHING_LABELS)
+        blended_picture = apply_segmentation_mask_on_picture(person_patch, decoded_mask, alpha=0.5)
+        
+        return blended_picture
     #FUNCTIONS ----------------------------------------------------------------------------------------------------------------------------   
      
     #CONSTs -------------------------------------------------------------------------------------------------------------------------CONSTs
-    SKIPPING_CLASSES = [4, 6, 62, 63, 72]
-    ADJUSTED_DIMENSION = adjust_size_to_model(resize_dimension)
-    LABEL_BACKGROUND_COLORS = {"#FF0000_#181818": [0,1], "#FF9900_#181818": [1,14], "#341A36_#FFFFFF": [14,24], "#00C036_#181818": [24,80]}
-    FONT = load_fonts()
+    YOLOV8_SKIPPING_CLASSES = [4, 6, 62, 63, 72]
+    YOLOV8_LABEL_BACKGROUND_COLORS = {"#FF0000_#181818": [0,1], "#FF9900_#181818": [1,14], "#341A36_#FFFFFF": [14,24], "#00C036_#181818": [24,80]}
+    ADJUSTED_DIMENSION = convert_input_dimension_to_GPU_dimension(input_frame_dimension)
+    SEGFORMER_B5_CLOTHING_LABELS = ["Background", "Hat", "Hair", "Sunglasses", " Upper-clothes", "Skirt", "Pants", "Dress", "Belt", "Left-shoe", "Right-shoe", "Face", "Left-leg", "Right-leg", "Left-arm", "Right-arm", "Bag", "Scarf"]
+    FONT = loading_label_fonts()
     LABEL_BACKGROUND_COLOR = []
     for i in range(0,80):
-        for color in LABEL_BACKGROUND_COLORS:
-            if i >= LABEL_BACKGROUND_COLORS[color][0] and i < LABEL_BACKGROUND_COLORS[color][1]:
+        for color in YOLOV8_LABEL_BACKGROUND_COLORS:
+            if i >= YOLOV8_LABEL_BACKGROUND_COLORS[color][0] and i < YOLOV8_LABEL_BACKGROUND_COLORS[color][1]:
                 LABEL_BACKGROUND_COLOR.append(color)
                 break
     #CONSTs -------------------------------------------------------------------------------------------------------------------------------
@@ -128,7 +233,7 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
     TOTAL_OBJECTS_REMOVED = 0
     TOTAL_OBJECTS_REMOVED_BY_OVERLAPPING = 0
     TOTAL_OBJECTS_REMOVED_BY_CONFIDENCE = 0
-    TOTAL_LARGE_OBJECTS_REMOVED = 0
+    TOTAL_OVERSIZE_OBJECTS_REMOVED = 0
     #OUTER STATIC VARIABLES ---------------------------------------------------------------------------------------------------------------
     
     #RECORDING VARIABLES ===============================================================================================RECORDING VARIABLES
@@ -137,22 +242,12 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
     video_file_path = "output.avi"
     #RECORDING VARIABLES ==================================================================================================================
 
-    #LOAD YOLO MODEL -------------------------------------------------------------------------------------------------------LOAD YOLO MODEL
+    #LOAD REQUIRED MODELS ---------------------------------------------------------------------------------------------LOAD REQUIRED MODELS
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"[SYSTEM IS NOW RUNNING ON {device}]")
-    if model_variants == "NANO":
-        model = YOLO("../MODELs/yolov8n").to(device)
-    elif model_variants == "SMALL":
-        model = YOLO("../MODELs/yolov8s").to(device)
-    elif model_variants == "MEDIUM":
-        model = YOLO("../MODELs/yolov8m").to(device)
-    elif model_variants == "LARGE":
-        model = YOLO("../MODELs/yolov8l").to(device)
-    elif model_variants == "EXTRA-LARGE":
-        model = YOLO("../MODELs/yolov8x").to(device)
-    else:
-        model = YOLO("../MODELs/yolov8n").to(device)
-    #LOAD YOLO MODEL ----------------------------------------------------------------------------------------------------------------------
+    yolo_v8_model = loading_yolo_v8_models(yolo_v8_size, device)
+    if segmentation_on_person_option != "NONE":
+        segformer_b5_model, segformer_b5_image_processor = loading_segformer_b5_models("../Models/segformer-b5-finetuned-human-parsing", "matei-dorian/segformer-b5-finetuned-human-parsing", device)
+    #LOAD REQUIRED MODELS -----------------------------------------------------------------------------------------------------------------
 
     cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
     
@@ -161,63 +256,76 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
         OBJECT_REMOVED_FOR_THIS_FRAME = 0
         #INTER STATIC VARIABLES ----------------------------------------------------------------------------------------------------------------------
         
-        screen = ImageGrab.grab()
-        screen_resized = screen.resize(ADJUSTED_DIMENSION, Resampling.LANCZOS)
-        img_tensor = torch.from_numpy(np.array(screen_resized)).permute(2, 0, 1).float().div(255).unsqueeze(0).to(device)
-        results = model(img_tensor, verbose=False)
+        original_picture = ImageGrab.grab()
+        reshape_picture = original_picture.resize(ADJUSTED_DIMENSION, Resampling.LANCZOS)
+        tensor_picture = torch.from_numpy(np.array(reshape_picture)).permute(2, 0, 1).float().div(255).unsqueeze(0).to(device)
+        raw_model_output = yolo_v8_model(tensor_picture, verbose=False)
         
-        # Extract Results -------------------------------------------------------------------------------------------------------------------
-        result = results[0]
-        boxes = result.boxes.xyxy
-        cls = result.boxes.cls.tolist()
-        conf = result.boxes.conf.tolist()
-        names = result.names
-        boxes, cls, conf, obejct_removed_by_overlapping = filter_rectangles(boxes, cls, conf)
-        # Extract Results -------------------------------------------------------------------------------------------------------------------
+        # EXTRACT RESULTS -------------------------------------------------------------------------------------------------------------------
+        model_output = raw_model_output[0]
+        boxes = model_output.boxes.xyxy
+        cls = model_output.boxes.cls.tolist()
+        conf = model_output.boxes.conf.tolist()
+        names = model_output.names
+        boxes, cls, conf, obejct_removed_by_overlapping = filter_overlapping_detectations(boxes, cls, conf)
+        if segmentation_on_person_option != "NONE":
+            segmentation_await_box_index =  filter_segmentation_await_box_index(segmentation_on_person_option, boxes, cls, conf)
+        # EXTRACT RESULTS -------------------------------------------------------------------------------------------------------------------
 
-        draw = ImageDraw.Draw(screen_resized)
+        draw = ImageDraw.Draw(reshape_picture)
         
+        # DRAWING =============================================================================================================DRAWING
         for index in range(len(boxes)):
+            box_data = boxes[index].tolist()
             # INTER LOOP FILTERING CONDITIONS ===============================================================================================
+            if len(box_data) != 4:
+                continue
+            else:
+                x1, y1, x2, y2 = box_data
             if round(conf[index], 2) < object_confidence_threshold:
                 OBJECT_REMOVED_FOR_THIS_FRAME += 1
                 continue
-            if cls[index] in SKIPPING_CLASSES:
+            if cls[index] in YOLOV8_SKIPPING_CLASSES:
                 OBJECT_REMOVED_FOR_THIS_FRAME += 1
                 TOTAL_OBJECTS_REMOVED_BY_CONFIDENCE += 1
                 continue
             if person_detection_only and cls[index] != 0:
                 OBJECT_REMOVED_FOR_THIS_FRAME += 1
                 continue
+            if remove_oversize_objects and abs(x2-x1) * abs(y2-y1) > 1/3 * (input_frame_dimension[0] * input_frame_dimension[1]) or abs(x2-x1) > 4/6 * input_frame_dimension[0]:
+                OBJECT_REMOVED_FOR_THIS_FRAME += 1
+                TOTAL_OVERSIZE_OBJECTS_REMOVED += 1
+                continue
             # INTER LOOP FILTERING CONDITIONS ===============================================================================================
-            
-            box_data = boxes[index].tolist()
+        
+            cls_label = names[cls[index]]
+            conf_label = int(round(conf[index], 2)*100)
+            label = f"{cls_label} {conf_label}%"
             filling_color = LABEL_BACKGROUND_COLOR[int(cls[index])].split("_")
-
-            if len(box_data) == 4:
-                x1, y1, x2, y2 = box_data  # Unpack the coordinates
-                if remove_large_objects and abs(x2-x1) * abs(y2-y1) > 1/3 * (resize_dimension[0] * resize_dimension[1]) or abs(x2-x1) > 4/6 * resize_dimension[0]:
-                    OBJECT_REMOVED_FOR_THIS_FRAME += 1
-                    TOTAL_LARGE_OBJECTS_REMOVED += 1
-                    continue
-
-                cls_label = names[cls[index]]  # Get the class name using class ID or default to "Unknown"
-                conf_label = int(round(conf[index], 2)*100)  # Get the confidence and convert to percentage
-                label = f"{cls_label} {conf_label}%"  # Create label with class name and confidence
-
-                draw.rectangle([x1, y1, x2, y2], outline=filling_color[0], width=3)  # Draw the rectangle
-                text_bg = [x1, max(y1 - 16,0), x1 + (len(cls_label)+5) * 9, max(16,y1)] # Create background rectangle for text
-                draw.rectangle(text_bg, fill=filling_color[0])
-                draw.text((x1+2, max(y1 - 16,0)), label, fill=filling_color[1], font=FONT)  # Draw the label    
+            
+            # EXTRACT PERSON PATCH ===================================================================================EXTRACT PERSON PATCH
+            if segmentation_on_person_option != "NONE" and segmentation_await_box_index is not None and index in segmentation_await_box_index:
+                person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
+                blended_patch = segmentation_picture_with_segformer_b5(person_patch, segformer_b5_model, segformer_b5_image_processor, SEGFORMER_B5_CLOTHING_LABELS)
+                reshape_picture.paste(blended_patch, (int(x1), int(y1)))
+            # EXTRACT PERSON PATCH =======================================================================================================
+            
+            # DRAWING =============================================================================================================DRAWING
+            draw.rectangle([x1, y1, x2, y2], outline=filling_color[0], width=3)
+            text_bg = [x1, max(y1 - 16,0), x1 + (len(cls_label)+5) * 9, max(16,y1)]
+            draw.rectangle(text_bg, fill=filling_color[0])
+            draw.text((x1+2, max(y1 - 16,0)), label, fill=filling_color[1], font=FONT) 
+            # DRAWING ==================================================================================================================== 
+        # DRAWING ====================================================================================================================
         
         if is_recording:
-            draw.rectangle([0, 0, resize_dimension[0], 4], fill="red", width=3)
-        screen_np = np.array(screen_resized)
+            draw.rectangle([0, 0, input_frame_dimension[0], 4], fill="red", width=3)
+        screen_np = np.array(reshape_picture)
         screen_np = cv2.cvtColor(screen_np, cv2.COLOR_BGR2RGB)
         if is_recording:
             if video_writer is None:  # Start new video writer
                 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                video_writer = cv2.VideoWriter(video_file_path, fourcc, frames_per_second, resize_dimension)
+                video_writer = cv2.VideoWriter(video_file_path, fourcc, max_frames_per_second, input_frame_dimension)
             video_writer.write(screen_np)  # Write frame to video file
 
         cv2.imshow('Screen Capture', screen_np)
@@ -234,9 +342,10 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
                       f"\n\tOBJECT REMOVED FOR THIS FRAME: {OBJECT_REMOVED_FOR_THIS_FRAME}" + 
                       f"\n\tOBJECT REMOVED BY OVERLAPPING: {TOTAL_OBJECTS_REMOVED_BY_OVERLAPPING}" + 
                       f"\n\tOBJECT REMOVED BY CONFIDENCE: {TOTAL_OBJECTS_REMOVED_BY_CONFIDENCE}\n" +
-                      f"\tLARGE OBJECTS REMOVED: {TOTAL_LARGE_OBJECTS_REMOVED}\n")
+                      f"\tOVERSIZE OBJECTS REMOVED: {TOTAL_OVERSIZE_OBJECTS_REMOVED}\n")
 
-        key = cv2.waitKey(1000//frames_per_second) & 0xFF
+        # WINDOW CONTROL ==============================================================================================WINDOW CONTROL
+        key = cv2.waitKey(1000//max_frames_per_second) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('r'):
@@ -248,9 +357,9 @@ def screen_capture_and_detect_yolo_v8(model_variants = "NANO",
             else:
                 is_recording = True
                 print("Recording started.")
-
         if cv2.getWindowProperty('Screen Capture', cv2.WND_PROP_VISIBLE) < 1:
             break
+        # WINDOW CONTROL ============================================================================================================
 
     cv2.destroyAllWindows()
 def screen_capture_and_detect_segformer_b5(frames_per_second = 16, resize_dimension = (640, 480)):
@@ -358,11 +467,13 @@ if __name__ == "__main__":
     default_resize_dimension = (768, 432)
     default_object_confidence_threshold = 0.32
     
-    screen_capture_and_detect_yolo_v8(model_variants = "LARGE",
-                                      frames_per_second = default_frames_per_second,
-                                      resize_dimension = (1920, 1080), 
+    screen_detection_segmentation(yolo_v8_size = "LARGE",
+                                      max_frames_per_second = default_frames_per_second,
+                                      input_frame_dimension = (1920, 1080), 
                                       person_detection_only=False, 
-                                      remove_large_objects=True, 
+                                      object_confidence_threshold = 0.32,
+                                      remove_oversize_objects=True, 
+                                      segmentation_on_person_option = "SEGFORMER-B5-MAX-CONF/4",
                                       verbose=True)
     #screen_capture_and_detect_segformer_b5(default_frames_per_second, (1920, 1080))
     
