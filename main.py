@@ -14,6 +14,11 @@ from PIL.Image import Resampling
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from transformers import SegformerForSemanticSegmentation, SegformerImageProcessor
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
 
 def screen_capture(frames_per_second = 16):
     # Set up the display window name
@@ -219,7 +224,7 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         return blended_picture
     def extract_and_save_person_patches(collecting_person_patches, person_patch, conf, CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS):
         if "SAVE_EVERY_N_SECONDS" in collecting_person_patches and CURRENT_FRAME_TIME - PREVIOUS_FRAME_TIME > COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS or CURRENT_FRAME_TIME == PREVIOUS_FRAME_TIME:
-            folder_path = "./DATASET"
+            folder_path = "./DATA"
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
