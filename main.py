@@ -14,11 +14,8 @@ from PIL.Image import Resampling
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from transformers import SegformerForSemanticSegmentation, SegformerImageProcessor
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from torchvision.models import resnet18, ResNet18_Weights, resnet50, ResNet50_Weights, resnet101, ResNet101_Weights
+from torchvision import transforms
 
 def screen_capture(frames_per_second = 16):
     # Set up the display window name
@@ -54,7 +51,8 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
                                   person_detection_only = False,
                                   # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
                                   segmentation_on_person_option = "NONE", # [OPTIONS] "NONE", "SEGFORMER-B5", "SEGFORMER-B5-MAX-SIZE/X", "SEGFORMER-B5-MAX-CONF/X"
-                                  collecting_person_patches = "NONE", # [OPTIONS] "NONE", "SAVE_EVERY_N_SECONDS/X"
+                                  segmentation_on_officers_option = "NONE", # [OPTIONS] "NONE", "MARK"
+                                  collecting_person_patches = "NONE", # [OPTIONS] "NONE", "SAVE_EVERY_N_SECONDS/X", "SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/X", "SAVE_CIVILIANS_ONLY_EVERY_N_SECONDS/X"
                                   # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
                                   verbose = False):
     #FUNCTIONS -------------------------------------------------------------------------------------------------------------------FUNCTIONS
@@ -97,6 +95,36 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         model = SegformerForSemanticSegmentation.from_pretrained(model_dir).to(device)
         image_processor = SegformerImageProcessor.from_pretrained(model_dir)
         return model, image_processor
+    def loading_binary_classification_resnet_model(model_size = 'resnet18', fine_tune = False):
+        os.environ['TORCH_HOME'] = './MODELs'
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        if model_size == 'resnet18':
+            weights = ResNet18_Weights.DEFAULT
+            model = resnet18(weights=weights)
+        elif model_size == 'resnet50':
+            weights = ResNet50_Weights.DEFAULT
+            model = resnet50(weights=weights)
+        elif model_size == 'resnet101':
+            weights = ResNet101_Weights.DEFAULT
+            model = resnet101(weights=weights)
+        else:
+            weights = ResNet18_Weights.DEFAULT
+            model = resnet18(weights=weights)
+        
+        if fine_tune:
+            for param in model.parameters():
+                param.requires_grad = False
+        
+        num_features = model.fc.in_features
+        model.fc = torch.nn.Sequential(
+            torch.nn.Linear(num_features, 1),
+            torch.nn.Sigmoid()
+        )
+        
+        model.load_state_dict(torch.load('./MODELs/classificaiton_resnet_weights.pth'))
+        print(f"[PROCESS] ------ [Classification {model_size} is loaded into {device}]")
+        return model.to(device)
     def convert_input_dimension_to_GPU_dimension(input_size, stride=32):
         # Adjust size so it's divisible by the model's stride
         new_width = (input_size[0] // stride) * stride
@@ -222,7 +250,23 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
         blended_picture = apply_segmentation_mask_on_picture(person_patch, decoded_mask, alpha=0.5)
         
         return blended_picture
-    def extract_and_save_person_patches(collecting_person_patches, person_patch, conf, CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS):
+    def extract_and_save_person_patches(collecting_person_patches, person_patch, conf, CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS, officer_classification_prediction):
+        if "SAVE_OFFICERS_ONLY_EVERY_N_SECONDS" in collecting_person_patches and CURRENT_FRAME_TIME - PREVIOUS_FRAME_TIME > COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS or CURRENT_FRAME_TIME == PREVIOUS_FRAME_TIME and officer_classification_prediction == 1:
+            folder_path = "./DATA"
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            filename = f"person_patch_{timestamp}_{round(conf,2)}.png"
+            person_patch.save(os.path.join(folder_path, filename))
+            return True
+        if "SAVE_CIVILIANS_ONLY_EVERY_N_SECONDS" in collecting_person_patches and CURRENT_FRAME_TIME - PREVIOUS_FRAME_TIME > COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS or CURRENT_FRAME_TIME == PREVIOUS_FRAME_TIME and officer_classification_prediction == 0:
+            folder_path = "./DATA"
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            filename = f"person_patch_{timestamp}_{round(conf,2)}.png"
+            person_patch.save(os.path.join(folder_path, filename))
+            return True
         if "SAVE_EVERY_N_SECONDS" in collecting_person_patches and CURRENT_FRAME_TIME - PREVIOUS_FRAME_TIME > COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS or CURRENT_FRAME_TIME == PREVIOUS_FRAME_TIME:
             folder_path = "./DATA"
             if not os.path.exists(folder_path):
@@ -232,6 +276,21 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
             person_patch.save(os.path.join(folder_path, filename))
             return True
         return False  
+    def classify_officers_with_classification_resnet(model, person_patch):
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        image = person_patch.convert("RGB")
+        image = transform(image).unsqueeze(0).to(device)
+        model.eval()
+        with torch.no_grad():
+            output = model(image)
+            prediction = output.round().item()
+        return prediction
     #FUNCTIONS ----------------------------------------------------------------------------------------------------------------------------   
      
     #CONSTs -------------------------------------------------------------------------------------------------------------------------CONSTs
@@ -242,7 +301,7 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
     FONT = loading_label_fonts()
     LABEL_BACKGROUND_COLOR = []
     COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS = 0
-    if "SAVE_EVERY_N_SECONDS" in collecting_person_patches:
+    if collecting_person_patches != "NONE":
         COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS = int(collecting_person_patches.split("/")[1])
     for i in range(0,80):
         for color in YOLOV8_LABEL_BACKGROUND_COLORS:
@@ -270,6 +329,8 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
     yolo_v8_model = loading_yolo_v8_models(yolo_v8_size, device)
     if segmentation_on_person_option != "NONE":
         segformer_b5_model, segformer_b5_image_processor = loading_segformer_b5_models(device)
+    if segmentation_on_officers_option != "NONE":
+        classification_officers_resnet_model = loading_binary_classification_resnet_model()
     #LOAD REQUIRED MODELS -----------------------------------------------------------------------------------------------------------------
 
     cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
@@ -329,13 +390,25 @@ def screen_detection_segmentation(yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SM
             filling_color = LABEL_BACKGROUND_COLOR[int(cls[index])].split("_")
             
             # EXTRACT PERSON PATCH ===================================================================================EXTRACT PERSON PATCH
+            officer_classification_prediction = -1
             if segmentation_on_person_option != "NONE" and segmentation_await_box_index is not None and index in segmentation_await_box_index:
                 person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
                 blended_patch = segmentation_picture_with_segformer_b5(person_patch, segformer_b5_model, segformer_b5_image_processor, SEGFORMER_B5_CLOTHING_LABELS)
                 drawing_picture.paste(blended_patch, (int(x1), int(y1)))
+            if segmentation_on_officers_option != "NONE" and cls[index] == 0:
+                person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
+                officer_classification_prediction = classify_officers_with_classification_resnet(classification_officers_resnet_model, person_patch)
+                if officer_classification_prediction == 1:
+                    label = f"[OFFICER]"
+                    filling_color = ["#FF0000", "#FFFFFF"]
+                elif officer_classification_prediction == 0:
+                    label = f"[CIVILIAN]"
+                    filling_color = ["#00FF00", "#000000"]
+                else:
+                    label = f"{cls_label} {conf_label}%"
             if collecting_person_patches != "NONE":
                 person_patch = reshape_picture.crop((int(x1), int(y1), int(x2), int(y2)))
-                if extract_and_save_person_patches(collecting_person_patches, person_patch, conf[index], CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS):
+                if extract_and_save_person_patches(collecting_person_patches, person_patch, conf[index], CURRENT_FRAME_TIME, PREVIOUS_FRAME_TIME, COLLECTING_PERSON_PATCHES_EVERY_N_SECONDS, officer_classification_prediction):
                     PREVIOUS_FRAME_TIME = CURRENT_FRAME_TIME
             # EXTRACT PERSON PATCH =======================================================================================================
             
@@ -505,7 +578,8 @@ if __name__ == "__main__":
                                       remove_oversize_objects=True, 
                                       # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
                                       segmentation_on_person_option = "NONE",
-                                      collecting_person_patches = "SAVE_EVERY_N_SECONDS/12",
+                                      segmentation_on_officers_option = "MARK",
+                                      collecting_person_patches = "SAVE_CIVILIANS_ONLY_EVERY_N_SECONDS/12",
                                       # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
                                       verbose=False)
     #screen_capture_and_detect_segformer_b5(default_frames_per_second, (1920, 1080))
