@@ -1,5 +1,7 @@
-MODELs
 DATA
-DATA_EXCHANGE
-LOCAL_ENV
+MODELs
 .DS_Store
+LOCAL_ENV
+DATA_EXCHANGE
+
+objects_detection_and_alert_application/node_modules
