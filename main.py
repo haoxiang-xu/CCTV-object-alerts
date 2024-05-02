@@ -584,7 +584,7 @@ if __name__ == "__main__":
     default_resize_dimension = (768, 432)
     default_object_confidence_threshold = 0.32
     
-    screen_detection_segmentation(yolo_v8_size = "LARGE",
+    screen_detection_segmentation(yolo_v8_size = "NANO",
                                       max_frames_per_second = default_frames_per_second,
                                       input_frame_dimension = (1920, 1080), 
                                       # Filtering Conditions ------------------------------------------------------------------------------------- Filtering Conditions
@@ -594,7 +594,7 @@ if __name__ == "__main__":
                                       # Additional Functionalties --------------------------------------------------------------------------- Additional Functionalties
                                       segmentation_on_person_option = "NONE",
                                       segmentation_on_officers_option = "SEGMENT",
-                                      collecting_person_patches = "NONE",#"SAVE_CIVILIANS_ONLY_EVERY_N_SECONDS/1",
+                                      collecting_person_patches = "SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/6",#"SAVE_CIVILIANS_ONLY_EVERY_N_SECONDS/1",
                                       # Verbose --------------------------------------------------------------------------------------------------------------- Verbose
                                       verbose=False)
     #screen_capture_and_detect_segformer_b5(default_frames_per_second, (1920, 1080))

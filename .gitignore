@@ -4,4 +4,4 @@ MODELs
 LOCAL_ENV
 DATA_EXCHANGE
 
-objects_detection_and_alert_application/node_modules
+object_detection_application/node_modules
