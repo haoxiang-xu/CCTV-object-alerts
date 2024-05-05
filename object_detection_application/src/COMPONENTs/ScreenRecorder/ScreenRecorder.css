@@ -32,7 +32,7 @@
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   background-color: #b3b8c2b0;
-  border-radius: 14px;
+  border-radius: 32px;
   overflow: hidden;
 }
 
@@ -41,13 +41,13 @@
   /*POSITION&SIZE*/
   position: absolute;
   transform: translate(0%, -50%);
-  left: 12px;
+  left: 24px;
   top: 50%;
   width: 200px;
 
   /*STYLE*/
   font-family: "Jost";
-  font-weight: 400;
+  font-weight: 100;
   letter-spacing: 0px;
   color: #ffffff;
   font-size: 18px;
@@ -86,7 +86,7 @@
 
   background-color: #ffffff60;
   padding: 6px;
-  border-radius: 9px;
+  border-radius: 32px;
 }
 .screen-recorder-pause-recording-button0502 {
   transition: all 0.16s ease;
@@ -114,5 +114,5 @@
 
   background-color: #ffffff60;
   padding: 6px;
-  border-radius: 9px;
+  border-radius: 32px;
 }
