@@ -16,7 +16,7 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "concurrently \"npm run react-start\" \"npm run electron-start\"",
+    "start": "cross-env BROWSER=chrome PORT=3000 react-scripts start",
     "react-start": "cross-env BROWSER=none PORT=3000 react-scripts start",
     "electron-start": "electron .",
     "build": "react-scripts build",

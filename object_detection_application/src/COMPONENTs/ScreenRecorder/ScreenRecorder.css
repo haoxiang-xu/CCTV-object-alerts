@@ -8,8 +8,9 @@
 
   /*STYLE*/
   background-color: #181818;
+  border: 3px solid #2c2c2c;
   margin: 6px;
-  border-radius: 14px;
+  border-radius: 6px;
   overflow: hidden;
 }
 .screen-recoder-player-container0502 {
@@ -43,11 +44,11 @@
   transform: translate(0%, -50%);
   left: 24px;
   top: 50%;
-  width: 200px;
 
   /*STYLE*/
   font-family: "Jost";
   font-weight: 100;
+  white-space: nowrap;
   letter-spacing: 0px;
   color: #ffffff;
   font-size: 18px;

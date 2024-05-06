@@ -7,12 +7,44 @@ const PlayIcon = require("../../ICONs/play.png");
 const ScreenRecorder = () => {
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
-  const [consoleMsg, setConsoleMsg] = useState("");
+
+  /* CONTROL PANEL -------------------------------------------------------------------------- CONTROL PANEL */
+  const [controlPanelWidth, setControlPanelWidth] = useState("72px");
+  const [controlPanelMsgTimer, setControlPanelMsgTimer] = useState(-1);
+  const controlPanelConsoleMsgRef = useRef(null);
+  const [controlPanelConsoleMsg, setControlPanelConsoleMsg] = useState(
+    "Press to start monitoring."
+  );
+  useEffect(() => {
+    if (controlPanelConsoleMsg === "") {
+      setControlPanelWidth("48px");
+    } else {
+      setControlPanelWidth(
+        controlPanelConsoleMsgRef.current.clientWidth + 72 + "px"
+      );
+    }
+  }, [controlPanelConsoleMsg, controlPanelConsoleMsgRef]);
+  useEffect(() => {
+    if (controlPanelMsgTimer > 0) {
+      const timer = setTimeout(() => {
+        setControlPanelMsgTimer(controlPanelMsgTimer - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (controlPanelMsgTimer === 0) {
+      setControlPanelConsoleMsg("");
+    }
+  }, [controlPanelMsgTimer]);
+
+  const setControlPanelNewMsg = (msg) => {
+    setControlPanelConsoleMsg(msg);
+    setControlPanelMsgTimer(3);
+  };
+  /* CONTROL PANEL ---------------------------------------------------------------------------------------- */
+
   const [isRecording, setIsRecording] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState([]);
 
   const startRecording = async () => {
-    console.log("Attempting to start recording...");
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       console.log("Screen recording is not supported in this browser.");
       return;
@@ -39,7 +71,7 @@ const ScreenRecorder = () => {
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
-      setConsoleMsg("Start monitoring screen");
+      setControlPanelNewMsg("Start monitoring screen");
     } catch (err) {
       console.log("Error: ", err);
     }
@@ -50,7 +82,7 @@ const ScreenRecorder = () => {
     tracks.forEach((track) => track.stop());
     videoRef.current.srcObject = null;
     setIsRecording(false);
-    setConsoleMsg("Stop monitoring screen");
+    setControlPanelNewMsg("Stop monitoring screen");
   };
   const downloadRecording = () => {
     const blob = new Blob(recordedChunks, { type: "video/webm" });
@@ -63,13 +95,6 @@ const ScreenRecorder = () => {
     a.click();
     setRecordedChunks([]);
   };
-  useEffect(() => {
-    if (consoleMsg !== "") {
-      setTimeout(() => {
-        setConsoleMsg("");
-      }, 3000);
-    }
-  }, [consoleMsg]);
   return (
     <div className="screen-recoder-container0502">
       <link
@@ -87,9 +112,14 @@ const ScreenRecorder = () => {
       <div>
         <div
           className="screen-recorder-control-panel0502"
-          style={{ width: consoleMsg === "" ? "48px" : "256px" }}
+          style={{ width: controlPanelWidth }}
         >
-          <span className="screen-recorder-console-msg0502">{consoleMsg}</span>
+          <span
+            ref={controlPanelConsoleMsgRef}
+            className="screen-recorder-console-msg0502"
+          >
+            {controlPanelConsoleMsg}
+          </span>
           {isRecording ? (
             <img
               className="screen-recorder-pause-recording-button0502"
