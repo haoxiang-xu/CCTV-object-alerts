@@ -1,0 +1,146 @@
+.side-menu-main-container {
+  transition: all 0.24s ease;
+
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+
+  border-radius: 0px;
+  overflow: hidden;
+}
+.side-menu-unexpend {
+  transition: opacity 0.16s ease;
+
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: 4px;
+  top: 50%;
+
+  opacity: 0.32;
+}
+.side-menu-unexpend:hover {
+  transition: opacity 0.16s ease;
+
+  opacity: 1;
+}
+.capture-settings-menu-container {
+  transition: all 0.16s ease;
+
+  /* POSITION & SIZE */
+  position: absolute;
+  top: 256px;
+  left: 0px;
+  right: 24px;
+
+  /* STYLE */
+  border-radius: 10px;
+}
+
+.side-menu-dropdown {
+  position: relative;
+  display: block;
+
+  width: 100%;
+
+  font-family: "Jost";
+  font-weight: 100;
+  font-size: 13px;
+  color: #ffffff;
+  box-shadow: 0px 6px 8px 0px #00000023;
+  border-radius: 4px;
+  background-color: #393939;
+  border: none;
+  outline: none;
+}
+option {
+  font-family: "Jost";
+  font-weight: 100;
+  font-size: 13px;
+  color: #888888;
+  background-color: #393939;
+  border: none;
+  outline: none;
+}
+
+.side-menu-title-level-2 {
+  position: relative;
+  top: 3px;
+  left: 12px;
+  width: 100%;
+
+  font-family: "Jost";
+  font-weight: 100;
+  font-size: 24px;
+  white-space: nowrap;
+  color: #b0b0b0;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.side-menu-title-level-3 {
+  position: relative;
+  top: 0px;
+  left: -2.5px;
+  width: 100%;
+
+  font-family: "Jost";
+  font-weight: 100;
+  font-size: 18px;
+  color: #b0b0b0d2;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.side-menu-title-level-4 {
+  position: relative;
+  top: 0px;
+  left: -2.5px;
+  width: 100%;
+  display: block;
+
+  font-family: "Jost";
+  font-weight: 100;
+  font-size: 17px;
+  color: #717171;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.side-menu-list-level-2 {
+  transition: all 0.16s ease;
+
+  position: absolute;
+  left: 0px;
+  right: 0px;
+
+  list-style-type: none;
+  overflow: hidden;
+}
+.side-menu-list-level-2-section {
+  position: relative;
+}
+.side-menu-list-level-3 {
+  transition: all 0.16s ease;
+  position: absolute;
+  top: 28px;
+  left: -1.5px;
+  right: 0px;
+  list-style-type: none;
+
+  border-left: 1px solid #333333;
+  padding: 0px 12px 12px 12px;
+  overflow: hidden;
+}
+.side-menu-list-level-3-section {
+  position: relative;
+}

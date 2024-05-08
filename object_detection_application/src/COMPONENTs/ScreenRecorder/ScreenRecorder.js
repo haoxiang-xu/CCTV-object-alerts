@@ -7,13 +7,14 @@ const PlayIcon = require("../../ICONs/play.png");
 const ScreenRecorder = () => {
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
+  const canvasRef = useRef(null);
 
   /* CONTROL PANEL -------------------------------------------------------------------------- CONTROL PANEL */
   const [controlPanelWidth, setControlPanelWidth] = useState("72px");
   const [controlPanelMsgTimer, setControlPanelMsgTimer] = useState(-1);
   const controlPanelConsoleMsgRef = useRef(null);
   const [controlPanelConsoleMsg, setControlPanelConsoleMsg] = useState(
-    "Press to start monitoring."
+    "Press to Start Monitoring."
   );
   useEffect(() => {
     if (controlPanelConsoleMsg === "") {
@@ -41,15 +42,49 @@ const ScreenRecorder = () => {
   };
   /* CONTROL PANEL ---------------------------------------------------------------------------------------- */
 
-  const [isRecording, setIsRecording] = useState(false);
+  /* SCREEN RECORDER -------------------------------------------------------------------------- SCREEN RECORDER */
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [processedFrame, setProcessedFrame] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
 
-  const startRecording = async () => {
+  // Basic Functions ==========================================================================================
+  const captureSingleFrame = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+    console.log(video.videoWidth, video.videoHeight);
+    console.log(canvas.width, canvas.height);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
+  };
+  const sendFrameForProcessing = async () => {
+    const frameData = captureSingleFrame();
+    const response = await fetch("http://localhost:5000/send_frame", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ frame: frameData }),
+    });
+
+    const data = await response.json();
+    if (data.processed_frame) {
+      setProcessedFrame(`data:image/png;base64,${data.processed_frame}`);
+    }
+    console.log("[BACKEND] --- [", data.message, "]");
+  };
+
+  // Event Handlers ============================================================================================
+  const handleCaptureStarted = async () => {
+    setTimeout(() => {
+      sendFrameForProcessing();
+    }, 6000);
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      console.log("Screen recording is not supported in this browser.");
+      console.log("[ERROR] --- [Screen recording is not supported]");
       return;
     }
-
     const displayMediaOptions = {
       video: {
         cursor: "always",
@@ -61,28 +96,18 @@ const ScreenRecorder = () => {
         displayMediaOptions
       );
       videoRef.current.srcObject = stream;
-      mediaRecorderRef.current = new MediaRecorder(stream);
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          setRecordedChunks((prev) => prev.concat(event.data));
-        }
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setControlPanelNewMsg("Start monitoring screen");
+      setIsCapturing(true);
+      setControlPanelNewMsg("Monitoring Started");
     } catch (err) {
-      console.log("Error: ", err);
+      console.log("[ERROR] --- [", err, "]");
     }
   };
-  const stopRecording = () => {
-    mediaRecorderRef.current.stop();
+  const handleCaptureStoped = () => {
+    setIsCapturing(false);
+    setControlPanelNewMsg("Monitoring Stopped");
     const tracks = videoRef.current.srcObject.getTracks();
     tracks.forEach((track) => track.stop());
     videoRef.current.srcObject = null;
-    setIsRecording(false);
-    setControlPanelNewMsg("Stop monitoring screen");
   };
   const downloadRecording = () => {
     const blob = new Blob(recordedChunks, { type: "video/webm" });
@@ -95,6 +120,8 @@ const ScreenRecorder = () => {
     a.click();
     setRecordedChunks([]);
   };
+  /* SCREEN RECORDER ------------------------------------------------------------------------------------------ */
+
   return (
     <div className="screen-recoder-container0502">
       <link
@@ -108,6 +135,27 @@ const ScreenRecorder = () => {
           autoPlay
           playsInline
         />
+        <canvas
+          ref={canvasRef}
+          style={{ display: "none" }}
+          width={1280}
+          height={720}
+        ></canvas>
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          top: "0px",
+          left: "0px",
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <img
+          style={{ height: "100%", width: "100%" }}
+          src={processedFrame}
+          alt="Processed Frame"
+        />
       </div>
       <div>
         <div
@@ -120,19 +168,19 @@ const ScreenRecorder = () => {
           >
             {controlPanelConsoleMsg}
           </span>
-          {isRecording ? (
+          {isCapturing ? (
             <img
               className="screen-recorder-pause-recording-button0502"
               src={PauseIcon}
               alt="Pause Capture Icon"
-              onClick={stopRecording}
+              onClick={handleCaptureStoped}
             />
           ) : (
             <img
               className="screen-recorder-start-recording-button0502"
               src={PlayIcon}
               alt="Screen Capture Icon"
-              onClick={startRecording}
+              onClick={handleCaptureStarted}
             />
           )}
           {/* {recordedChunks.length > 0 && (

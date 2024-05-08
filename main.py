@@ -10,6 +10,7 @@ import pyautogui
 import screeninfo
 import numpy as np
 import tkinter as tk
+import customtkinter as ctk
 import pygetwindow as gw
 from tkinter import ttk, messagebox
 from io import BytesIO
@@ -1061,6 +1062,10 @@ def capture_and_process(queue,
         if not queue.full():
             queue.put(screen_np)
         time.sleep(INTERVAL)
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
 class MultiprocessingScreenCaptureApp:
     def __init__(self, root, fps=16):
         self.root = root
@@ -1070,32 +1075,29 @@ class MultiprocessingScreenCaptureApp:
         self.capture_interval = int(1000 / self.fps)
 
         # Create the left-side menu
-        self.menu_frame = tk.Frame(self.root, width=200)
-        self.menu_frame.pack(side=tk.LEFT, fill=tk.Y)
+        self.menu_frame = ctk.CTkFrame(self.root, width=300)
+        self.menu_frame.pack(side=tk.LEFT, padx = 16)
         
         # Screen selector
-        tk.Label(self.menu_frame, text="Select Screen", bg="lightgrey").pack(pady=10)
+        ctk.CTkLabel(self.menu_frame, text="Select Screen").pack(pady=10)
         self.screen_var = tk.StringVar()
         self.screen_selector = ttk.Combobox(self.menu_frame, textvariable=self.screen_var)
         self.screen_selector.pack()
         self.screen_selector.bind("<<ComboboxSelected>>", self.on_screen_selected)
 
         # Window selector
-        tk.Label(self.menu_frame, text="Select Window", bg="lightgrey").pack(pady=10)
+        ctk.CTkLabel(self.menu_frame, text="Select Window").pack(pady=10)
         self.window_var = tk.StringVar()
         self.window_selector = ttk.Combobox(self.menu_frame, textvariable=self.window_var)
         self.window_selector.pack()
         self.window_selector.bind("<<ComboboxSelected>>", self.on_window_selected)
 
         # Refresh and capture buttons
-        tk.Button(self.menu_frame, text="Refresh", command=self.refresh_selections).pack(pady=10)
-        tk.Button(self.menu_frame, text="Start Capture", command=self.start_capture).pack(pady=5)
-
-        # Alert options placeholder
-        tk.Label(self.menu_frame, text="Alert Options", bg="lightgrey").pack(pady=20)
+        ctk.CTkButton(self.menu_frame, text="Refresh", command=self.refresh_selections).pack(pady=10)
+        ctk.CTkButton(self.menu_frame, text="Start Capture", command=self.start_capture).pack(pady=5)
 
         # Canvas for screen capture
-        self.canvas = tk.Canvas(self.root)
+        self.canvas = ctk.CTkCanvas(self.root)
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # Queue to receive images
@@ -1181,7 +1183,7 @@ class MultiprocessingScreenCaptureApp:
         self.root.destroy()
         
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = MultiprocessingScreenCaptureApp(root, fps=16)
+    root = ctk.CTk()
+    app = MultiprocessingScreenCaptureApp(root)
     root.mainloop()
     
