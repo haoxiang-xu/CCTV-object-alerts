@@ -1,5 +1,5 @@
 .side-menu-main-container {
-  transition: all 0.24s ease;
+  transition: width 0.32s cubic-bezier(0.64, -0.16, 0.2, 1.28);
 
   position: absolute;
   top: 0px;
@@ -10,7 +10,7 @@
   border-radius: 0px;
   overflow: hidden;
 }
-.side-menu-unexpend {
+.side-menu-expand-icon {
   transition: opacity 0.16s ease;
 
   position: absolute;
@@ -21,13 +21,13 @@
 
   opacity: 0.32;
 }
-.side-menu-unexpend:hover {
+.side-menu-expand-icon:hover {
   transition: opacity 0.16s ease;
 
   opacity: 1;
 }
 .capture-settings-menu-container {
-  transition: all 0.16s ease;
+  transition: all 0.12s ease;
 
   /* POSITION & SIZE */
   position: absolute;
@@ -38,8 +38,18 @@
   /* STYLE */
   border-radius: 10px;
 }
+.capture-settings-menu-tool-icon {
+    transition: opacity 0.16s ease;
+  
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 10px;
+    top: 10px;
+  
+  }
 
-.side-menu-dropdown {
+select {
   position: relative;
   display: block;
 
@@ -49,7 +59,7 @@
   font-weight: 100;
   font-size: 13px;
   color: #ffffff;
-  box-shadow: 0px 6px 8px 0px #00000023;
+  box-shadow: 0px 6px 8px 0px #0000000a;
   border-radius: 4px;
   background-color: #393939;
   border: none;
@@ -68,7 +78,7 @@ option {
 .side-menu-title-level-2 {
   position: relative;
   top: 3px;
-  left: 12px;
+  left: 36px;
   width: 100%;
 
   font-family: "Jost";
@@ -117,7 +127,7 @@ option {
 }
 
 .side-menu-list-level-2 {
-  transition: all 0.16s ease;
+  transition: all 0.16s cubic-bezier(0.64, -0.16, 0.2, 1.28);
 
   position: absolute;
   left: 0px;
