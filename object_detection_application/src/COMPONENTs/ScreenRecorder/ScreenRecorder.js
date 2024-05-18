@@ -59,20 +59,20 @@ const ScreenRecorder = () => {
     return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
   };
   const sendFrameForProcessing = async () => {
-    const frameData = captureSingleFrame();
-    const response = await fetch("http://localhost:5000/send_frame", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ frame: frameData }),
-    });
+    // const frameData = captureSingleFrame();
+    // const response = await fetch("http://localhost:5000/send_frame", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({ frame: frameData }),
+    // });
 
-    const data = await response.json();
-    if (data.processed_frame) {
-      setProcessedFrame(`data:image/png;base64,${data.processed_frame}`);
-    }
-    console.log("[BACKEND] --- [", data.message, "]");
+    // const data = await response.json();
+    // if (data.processed_frame) {
+    //   setProcessedFrame(`data:image/png;base64,${data.processed_frame}`);
+    // }
+    // console.log("[BACKEND] --- [", data.message, "]");
   };
 
   // Event Handlers ============================================================================================

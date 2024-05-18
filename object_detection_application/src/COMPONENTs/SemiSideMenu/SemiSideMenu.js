@@ -7,6 +7,7 @@ import {
   Button,
   Slider,
   Tooltip,
+  Tag,
 } from "@douyinfe/semi-ui";
 import {
   IconPlus,
@@ -16,6 +17,23 @@ import {
   IconChevronDown,
   IconChevronUp,
 } from "@douyinfe/semi-icons";
+import {
+  RiNotificationLine,
+  RiTerminalBoxLine,
+  RiSettings4Line,
+  RiWindow2Line,
+  RiBellLine,
+  RiNotification3Line,
+  RiMegaphoneLine,
+  RiComputerLine,
+  RiMovieLine,
+  RiVidiconLine,
+  RiScreenshotLine,
+  RiTv2Line,
+  RiArrowUpSLine,
+  RiArrowDownSLine,
+  RiBrainLine,
+} from "react-icons/ri";
 
 /* CONSTANTS ----------------------------------------------------------------------- CONSTANTS */
 const YOLOV8_CAPTURING_OBJECTS = [
@@ -100,11 +118,22 @@ const YOLOV8_CAPTURING_OBJECTS = [
   "Hair drier",
   "Toothbrush",
 ];
+/* {COLORs} */
+const COLORs = {
+  ROOT_COLLAPSE_TAG_BACKGROUND_COLOR: "none",
+  ROOT_COLLAPSE_TAG_TEXT_COLOR: "#00000072",
+
+  SUB_COLLAPSE_TAG_TEXT_COLOR: "#535353",
+  SUB_COLLAPSE_TAG_BORDER_COLOR: "#CCCCCCC",
+
+  SELECT_INPUT_PREFIX_TEXT_COLOR: "#8C8C8C",
+};
 /* CONSTANTS --------------------------------------------------------------------------------- */
 
 const CusomizedCollapsePanel = ({
   root,
   index,
+  icon,
   header,
   content,
   suboptions,
@@ -116,11 +145,27 @@ const CusomizedCollapsePanel = ({
           style={{
             fontFamily: "Jost",
             fontSize: root ? "16px" : "16px",
-            fontWeight: root ? "300" : "300",
-            color: root ? "#000000" : "#8C8C8C",
+            fontWeight: root ? "500" : "400",
+            display: "inline-flex",
+            color: root
+              ? COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR
+              : COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR,
             userSelect: "none",
+            marginTop: "2px",
           }}
         >
+          {icon ? (
+            <div
+              style={{
+                marginRight: "4px",
+                color: root
+                  ? COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR
+                  : COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR,
+              }}
+            >
+              {icon}
+            </div>
+          ) : null}
           {header}
         </span>
       }
@@ -132,14 +177,24 @@ const CusomizedCollapsePanel = ({
         borderBottom: "none",
         borderRadius: root ? "8px" : "0px",
         marginBottom: root ? "8px" : "0px",
-        backgroundColor: root ? "#F5F5F5" : "none",
+        backgroundColor: root
+          ? COLORs.ROOT_COLLAPSE_TAG_BACKGROUND_COLOR
+          : "none",
       }}
       itemKey={index.toString()}
     >
       {suboptions && suboptions.length > 0 ? (
         <Collapse
-          expandIcon={<IconChevronDown style={{ color: "#BBBBBB" }} />}
-          collapseIcon={<IconChevronUp style={{ color: "#BBBBBB" }} />}
+          expandIcon={
+            <RiArrowDownSLine
+              style={{ color: COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR }}
+            />
+          }
+          collapseIcon={
+            <RiArrowUpSLine
+              style={{ color: COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR }}
+            />
+          }
           style={{ margin: "0px" }}
         >
           {suboptions.map((setting, index) => (
@@ -147,6 +202,7 @@ const CusomizedCollapsePanel = ({
               key={index}
               root={false}
               index={index}
+              icon={setting.icon}
               header={setting.option}
               content={setting.content}
               suboptions={setting.suboptions}
@@ -171,7 +227,7 @@ const InputFramesMenu = () => {
   return (
     <Form
       style={{
-        borderLeft: "1px solid #CCCCCC",
+        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
         padding: "0px 10px 0px 10px",
         margin: "0px -18px 0px 1px",
       }}
@@ -187,14 +243,7 @@ const InputFramesMenu = () => {
       <CustomizedSelectInput
         field="input_video_dimension"
         prefix="Frame Dimension"
-        options={[
-          "1920X1080",
-          "1366X768",
-          "1280X1024",
-          "1440X900",
-          "1280X800",
-          "1024X768",
-        ]}
+        options={["X1.00", "X0.75", "X0.50", "X0.25", "X0.10"]}
         value={inputVideoDimension}
         onChange={(v) => setInputVideoDimension(v)}
         mode="single"
@@ -223,7 +272,7 @@ const SegmentationMenu = () => {
   return (
     <Form
       style={{
-        borderLeft: "1px solid #CCCCCC",
+        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
         padding: "0px 10px 0px 10px",
         margin: "0px -18px 0px 1px",
       }}
@@ -313,7 +362,8 @@ const CustomizedSelectInput = ({
               fontWeight: "300",
               marginLeft: "8px",
               marginRight: "4px",
-              color: "#8C8C8C72",
+              color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+              userSelect: "none",
             }}
           >
             {prefix}
@@ -343,7 +393,8 @@ const CustomizedSelectInput = ({
                 fontWeight: "300",
                 marginLeft: "8px",
                 marginRight: "4px",
-                color: "#8C8C8C72",
+                color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+                userSelect: "none",
               }}
             >
               {prefix}
@@ -351,6 +402,8 @@ const CustomizedSelectInput = ({
           </Tooltip>
         )
       }
+      showArrow={false}
+      suffix={<RiArrowDownSLine style={{ margin: "10px" }} />}
       value={value}
       labelPosition="inset"
     >
@@ -380,7 +433,8 @@ const CustomizedSelectInput = ({
               fontWeight: "300",
               marginLeft: "8px",
               marginRight: "4px",
-              color: "#8C8C8C72",
+              color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+              userSelect: "none",
             }}
           >
             {prefix}
@@ -410,7 +464,8 @@ const CustomizedSelectInput = ({
                 fontWeight: "300",
                 marginLeft: "8px",
                 marginRight: "4px",
-                color: "#8C8C8C72",
+                color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+                userSelect: "none",
               }}
             >
               {prefix}
@@ -418,6 +473,8 @@ const CustomizedSelectInput = ({
           </Tooltip>
         )
       }
+      showArrow={false}
+      suffix={<RiArrowDownSLine style={{ margin: "10px" }} />}
       value={value}
       labelPosition="inset"
     >
@@ -431,22 +488,28 @@ const CustomizedSelectInput = ({
 };
 
 const SETTING_OPTIONS = [
-  { option: "Alerts" },
+  { option: "Alerts", icon: <RiMegaphoneLine /> },
   {
     option: "Processes",
+    icon: <RiWindow2Line />,
     suboptions: [
-      { option: "Input Frames", content: <InputFramesMenu /> },
+      {
+        option: "Input Frames",
+        icon: <RiVidiconLine />,
+        content: <InputFramesMenu />,
+      },
       {
         option: "Segmentation",
+        icon: <RiScreenshotLine />,
         content: <SegmentationMenu />,
       },
     ],
   },
-  { option: "Models" },
+  { option: "Models", icon: <RiBrainLine /> },
 ];
 const SemiSideMenu = () => {
   const [inputVideoSource, setInputVideoSource] = useState("DISPLAY 2");
-  const [inputVideoDimension, setInputVideoDimension] = useState("1920X1080");
+  const [inputVideoDimension, setInputVideoDimension] = useState("X0.75");
   const [captureFramesPerSecond, setCaptureFramesPerSecond] = useState(16);
   const [segmentationObjects, setSegmentationObjects] = useState(["Person"]);
   const [globalConfidenceLevel, setGlobalConfidenceLevel] = useState(16);
@@ -472,15 +535,24 @@ const SemiSideMenu = () => {
           rel="stylesheet"
         ></link>
         <Collapse
-          expandIcon={<IconPlus style={{ color: "#BBBBBB" }} />}
-          collapseIcon={<IconMinus style={{ color: "#BBBBBB" }} />}
-          style={{ margin: "0px" }}
+          accordion
+          expandIcon={
+            <RiArrowDownSLine
+              style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
+            />
+          }
+          collapseIcon={
+            <RiArrowUpSLine
+              style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
+            />
+          }
         >
           {SETTING_OPTIONS.map((setting, index) => (
             <CusomizedCollapsePanel
               key={index}
               root={true}
               index={index}
+              icon={setting.icon}
               header={setting.option}
               content={setting.content}
               suboptions={setting.suboptions}
