@@ -1,30 +1,30 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from PIL import Image
-import io
-import base64
+from flask import Flask, Response
+import cv2
+from PIL import ImageGrab
+import numpy as np
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for cross-origin requests
 
-@app.route('/send_frame', methods=['POST'])
-def send_frame():
-    data = request.get_json()
-    frame_data = data.get('frame')
-
-    if frame_data:
-        image_data = base64.b64decode(frame_data)
-        image = Image.open(io.BytesIO(image_data))
+def screen_capture(frames_per_second=16):
+    while True:
+        screen = ImageGrab.grab()
+        screen_np = np.array(screen)
+        screen_np = cv2.cvtColor(screen_np, cv2.COLOR_BGR2RGB)
         
-        save_path = './saved_frame.png'
-        image.save(save_path, 'PNG')
-
-        buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        ret, buffer = cv2.imencode('.jpg', screen_np)
+        frame = buffer.tobytes()
         
-        return jsonify({'message': 'Frame received and processed', 'processed_frame': img_str})
-    return jsonify({'message': 'No frame received', 'processed_frame': None})
+        # Yield the binary image data.
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+        # Delay control for frame rate
+        cv2.waitKey(1000//frames_per_second)
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(screen_capture(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, threaded=True, use_reloader=False)

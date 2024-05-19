@@ -40,6 +40,8 @@ import {
   RiSearchLine,
   RiDeleteBin6Line,
   RiPriceTag3Line,
+  RiCheckLine,
+  RiCloseLine,
 } from "react-icons/ri";
 
 /* CONSTANTS ----------------------------------------------------------------------- CONSTANTS */
@@ -244,7 +246,7 @@ const AlertsMenu = () => {
               width: addingNewAlert ? "50%" : "100%",
               height: "64px",
               padding: "10px",
-              borderRadius: "3px 0px 0px 3px",
+              borderRadius: "5px 0px 0px 5px",
             }}
             theme="light"
             type="tertiary"
@@ -252,7 +254,7 @@ const AlertsMenu = () => {
               e.stopPropagation();
               setAddingNewAlert(!addingNewAlert);
             }}
-            icon={<RiDeleteBin6Line />}
+            icon={<RiCloseLine />}
           >
             <span
               style={{
@@ -273,7 +275,7 @@ const AlertsMenu = () => {
           style={{
             translate: "all 0.3s ease-in-out",
             width: addingNewAlert ? "50%" : "100%",
-            borderRadius: addingNewAlert ? "0px 3px 3px 0px" : "3px",
+            borderRadius: addingNewAlert ? "0px 5px 5px 0px" : "5px",
             height: "64px",
             padding: "10px",
           }}
@@ -284,7 +286,8 @@ const AlertsMenu = () => {
             handleAddingNewAlert();
             setAddingNewAlert(!addingNewAlert);
           }}
-          icon={<RiAddLargeLine />}
+          htmlType={addingNewAlert ? "submit" : "button"}
+          icon={addingNewAlert ? <RiCheckLine /> : <RiAddLargeLine />}
         >
           <span
             style={{
@@ -672,6 +675,7 @@ const CustomizedSelectInput = ({
 /* CUSTOMIZED UI COMPONENTS ------------------------------------------------------------------ */
 
 const SETTING_OPTIONS = [
+  { option: "Models", icon: <RiBrainLine /> },
   { option: "Alerts", icon: <RiMegaphoneLine />, content: <AlertsMenu /> },
   {
     option: "Processes",
@@ -689,7 +693,6 @@ const SETTING_OPTIONS = [
       },
     ],
   },
-  { option: "Models", icon: <RiBrainLine /> },
 ];
 const SemiSideMenu = () => {
   const [addingNewAlertName, setAddingNewAlertName] = useState(null);
