@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
+import io from "socket.io-client";
 import { frameReceiverControlContexts } from "../../CONTEXTs/frameReceiverControlContexts";
 import { settingMenuContexts } from "../../CONTEXTs/settingMenuContexts";
 import { Button, Toast } from "@douyinfe/semi-ui";
@@ -6,7 +7,10 @@ import {
   RiRestartLine,
   RiPauseLargeLine,
   RiPlayLargeLine,
+  RiCheckLine,
 } from "react-icons/ri";
+
+const socket = io("http://localhost:5000");
 
 /* CUSTOMIZED UI COMPONENTS ----------------------------------------------------------------CUSTOMIZED UI COMPONENTS */
 /* {FRAME RECEIVER} */
@@ -133,8 +137,42 @@ const ControlPanel = () => {
 /* CUSTOMIZED UI COMPONENTS ---------------------------------------------------------------------------------------- */
 
 const FlaskFramesReceiver = () => {
+  const [flaskStatus, setFlaskStatus] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [refresh, setRefresh] = useState(false);
+
+  useEffect(() => {
+    socket.on("status", (data) => {
+      setFlaskStatus(data.message);
+    });
+    return () => socket.off("status");
+  }, []);
+  useEffect(() => {
+    if (flaskStatus === "") return;
+    Toast.info({
+      icon: <RiCheckLine style={{ marginTop: "2px" }} />,
+      content: (
+        <span
+          style={{
+            fontSize: "16px",
+            fontFamily: "Jost",
+            fontWeight: "400",
+          }}
+        >
+          {flaskStatus}
+        </span>
+      ),
+      duration: 3,
+    });
+    setFlaskStatus("");
+  }, [flaskStatus]);
+  useEffect(() => {
+    if (isStreaming) {
+      socket.emit("toggle_streaming_status", true);
+    } else {
+      socket.emit("toggle_streaming_status", false);
+    }
+  }, [isStreaming]);
 
   return (
     <div

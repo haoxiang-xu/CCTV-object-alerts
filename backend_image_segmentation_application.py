@@ -23,8 +23,15 @@ from transformers import SegformerForSemanticSegmentation, SegformerImageProcess
 from torchvision.models import resnet18, ResNet18_Weights, resnet50, ResNet50_Weights, resnet101, ResNet101_Weights
 from torchvision import transforms
 from flask import Flask, Response, request
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# SYSTEM VARIABLES ------------------------------------------------------------------------------------------------SYSTEM VARIABLES
+isStreaming = False
 
 def screen_capture(frames_per_second=64):
     while True:
@@ -368,7 +375,13 @@ def capture_and_process(display_number=None,
         print(f"[ERROR] -------- [No screen or window selected]")
     #CAPTURE SCREEN -----------------------------------------------------------------------------------------------------------------
 
+    #SOCKETIO STATUS UPDATE ------------------------------------------------------------------------------------------------SOCKETIO STATUS UPDATE
+    socketio.emit('status', {'status': 'success', 'message': 'Model Loaded'})
+    
+    
     while True:
+        if not isStreaming:
+            continue
         #INTER STATIC VARIABLES ------------------------------------------------------------------------------------------------INTER STATIC VARIABLES
         OBJECT_REMOVED_FOR_THIS_FRAME = 0
         CURRENT_FRAME_TIME = time.time()
@@ -503,6 +516,11 @@ def request_frame():
                                         max_frames_per_second=max_frames_per_second,
                                         object_confidence_threshold=object_confidence_threshold),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@socketio.on('toggle_streaming_status')
+def toggle_streaming_status(condition):
+    global isStreaming
+    isStreaming = condition
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True, use_reloader=False)
