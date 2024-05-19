@@ -46,6 +46,7 @@ function App() {
             top: "12px",
             left: "12px",
             bottom: "12px",
+            overflowY: "auto",
           }}
         >
           <SemiSideMenu />

@@ -122,12 +122,12 @@ const YOLOV8_CAPTURING_OBJECTS = [
 /* {COLORs} */
 const COLORs = {
   ROOT_COLLAPSE_TAG_BACKGROUND_COLOR: "none",
-  ROOT_COLLAPSE_TAG_TEXT_COLOR: "#00000072",
+  ROOT_COLLAPSE_TAG_TEXT_COLOR: "#000000",
 
-  SUB_COLLAPSE_TAG_TEXT_COLOR: "#535353",
-  SUB_COLLAPSE_TAG_BORDER_COLOR: "#CCCCCCC",
+  SUB_COLLAPSE_TAG_TEXT_COLOR: "#363636",
+  SUB_COLLAPSE_TAG_BORDER_COLOR: "#8C8C8C",
 
-  SELECT_INPUT_PREFIX_TEXT_COLOR: "#8C8C8C",
+  SELECT_INPUT_PREFIX_TEXT_COLOR: "#5A5A5A",
 };
 /* CONSTANTS --------------------------------------------------------------------------------- */
 
@@ -471,14 +471,14 @@ const CusomizedCollapsePanel = ({
       style={{
         marginRight: root ? "0px" : "-16px",
         marginLeft: root ? "0px" : "15px",
-        padding: root ? "4px 0px 4px 0px" : "0px",
         borderLeft: root ? "none" : "none",
         borderBottom: "none",
         borderRadius: root ? "8px" : "0px",
-        marginBottom: root ? "8px" : "0px",
         backgroundColor: root
           ? COLORs.ROOT_COLLAPSE_TAG_BACKGROUND_COLOR
           : "none",
+        padding: "0px",
+        border: "none",
       }}
       itemKey={index.toString()}
     >

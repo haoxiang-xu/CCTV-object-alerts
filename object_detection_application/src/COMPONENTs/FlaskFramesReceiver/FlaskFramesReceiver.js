@@ -25,10 +25,17 @@ const FramesReceiver = () => {
       global_confidence_level: globalConfidenceLevel / 100,
     };
     const img = document.getElementById("flask-frames-receiver");
+    const container = document.getElementById(
+      "flask-frames-receiver-container"
+    );
     img.src =
       `http://localhost:5000/request_frame?` +
       `capture_frames_per_second=${requestBody.capture_frames_per_second}` +
       `&global_confidence_level=${requestBody.global_confidence_level}`;
+    img.onload = () => {
+      container.style.backgroundImage = `url(${img.src})`;
+      container.style.backgroundSize = "cover";
+    };
   }, [refresh]);
 
   return (
@@ -147,8 +154,8 @@ const InformationPanel = () => {
         top: "7px",
         width: "128px",
         maxWidth: "calc(100% - 32px)",
-        height: "40px",
-        borderRadius: "6px",
+        height: "32px",
+        borderRadius: "2px",
         backdropFilter: "blur(12px)",
         backgroundColor: "#b3b8c2b0",
         overflow: "hidden",
@@ -157,7 +164,7 @@ const InformationPanel = () => {
       <span
         style={{
           position: "absolute",
-          top: "9px",
+          top: "4.5px",
           right: "11px",
           fontFamily: "Jost",
           fontWeight: 300,
@@ -227,15 +234,16 @@ const FlaskFramesReceiver = () => {
 
   return (
     <div
+      id="flask-frames-receiver-container"
       style={{
         position: "absolute",
         top: "0px",
         left: "0px",
         right: "0px",
         bottom: "0px",
-        overflow: "hidden",
         backgroundColor: "#F1F1F1",
-        borderRadius: "9px",
+        borderRadius: "3px",
+        overflow: "hidden",
       }}
     >
       <frameReceiverControlContexts.Provider
@@ -248,6 +256,15 @@ const FlaskFramesReceiver = () => {
           setFlaskFramesRateCount,
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            height: "100%",
+            width: "100%",
+            backdropFilter: "blur(128px)",
+            backgroundColor: "#ffffff0c",
+          }}
+        ></div>
         <FramesReceiver />
         <ControlPanel />
         <InformationPanel />
