@@ -144,7 +144,7 @@ const InformationPanel = () => {
         transition: "all 0.28s ease",
         position: "absolute",
         right: "6px",
-        top: "6px",
+        top: "7px",
         width: "128px",
         maxWidth: "calc(100% - 32px)",
         height: "40px",
