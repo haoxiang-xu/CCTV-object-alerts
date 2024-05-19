@@ -13,14 +13,6 @@ import {
   TagInput,
 } from "@douyinfe/semi-ui";
 import {
-  IconPlus,
-  IconMinus,
-  IconRefresh,
-  IconSave,
-  IconChevronDown,
-  IconChevronUp,
-} from "@douyinfe/semi-icons";
-import {
   RiNotificationLine,
   RiTerminalBoxLine,
   RiSettings4Line,
@@ -695,68 +687,37 @@ const SETTING_OPTIONS = [
   },
 ];
 const SemiSideMenu = () => {
-  const [addingNewAlertName, setAddingNewAlertName] = useState(null);
-  const [addingNewAlertDetectingObjects, setAddingNewAlertDetectingObjects] =
-    useState([]);
-  const [addingNewAlertSendTo, setAddingNewAlertSendTo] = useState([]);
-  const [inputVideoSource, setInputVideoSource] = useState("DISPLAY 2");
-  const [inputVideoDimension, setInputVideoDimension] = useState("X0.75");
-  const [captureFramesPerSecond, setCaptureFramesPerSecond] = useState(16);
-  const [segmentationObjects, setSegmentationObjects] = useState(["Person"]);
-  const [globalConfidenceLevel, setGlobalConfidenceLevel] = useState(16);
-
   return (
-    <div>
-      <settingMenuContexts.Provider
-        value={{
-          addingNewAlertName,
-          setAddingNewAlertName,
-          addingNewAlertDetectingObjects,
-          setAddingNewAlertDetectingObjects,
-          addingNewAlertSendTo,
-          setAddingNewAlertSendTo,
-          inputVideoSource,
-          setInputVideoSource,
-          inputVideoDimension,
-          setInputVideoDimension,
-          captureFramesPerSecond,
-          setCaptureFramesPerSecond,
-          segmentationObjects,
-          setSegmentationObjects,
-          globalConfidenceLevel,
-          setGlobalConfidenceLevel,
-        }}
+    <>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;700&display=swap"
+        rel="stylesheet"
+      ></link>
+      <Collapse
+        expandIcon={
+          <RiArrowDownSLine
+            style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
+          />
+        }
+        collapseIcon={
+          <RiArrowUpSLine
+            style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
+          />
+        }
       >
-        <link
-          href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;700&display=swap"
-          rel="stylesheet"
-        ></link>
-        <Collapse
-          expandIcon={
-            <RiArrowDownSLine
-              style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
-            />
-          }
-          collapseIcon={
-            <RiArrowUpSLine
-              style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
-            />
-          }
-        >
-          {SETTING_OPTIONS.map((setting, index) => (
-            <CusomizedCollapsePanel
-              key={index}
-              root={true}
-              index={index}
-              icon={setting.icon}
-              header={setting.option}
-              content={setting.content}
-              suboptions={setting.suboptions}
-            />
-          ))}
-        </Collapse>
-      </settingMenuContexts.Provider>
-    </div>
+        {SETTING_OPTIONS.map((setting, index) => (
+          <CusomizedCollapsePanel
+            key={index}
+            root={true}
+            index={index}
+            icon={setting.icon}
+            header={setting.option}
+            content={setting.content}
+            suboptions={setting.suboptions}
+          />
+        ))}
+      </Collapse>
+    </>
   );
 };
 
