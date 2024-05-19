@@ -42,9 +42,9 @@ function App() {
         <div
           style={{
             position: "absolute",
-            width: "328px",
+            width: "300px",
             top: "12px",
-            left: "12px",
+            left: "0px",
             bottom: "12px",
             overflowY: "auto",
           }}
@@ -55,7 +55,7 @@ function App() {
           style={{
             position: "absolute",
             top: "12px",
-            left: "352px",
+            left: "300px",
             right: "12px",
             bottom: "12px",
           }}
