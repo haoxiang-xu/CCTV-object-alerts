@@ -421,6 +421,10 @@ const SegmentationMenu = () => {
     </Form>
   );
 };
+/* {DISPLAY} */
+const DisplayMenu = () => {
+  return <span>Display FPS</span>;
+};
 /* SUBLEVEL MENU ============================================================================= */
 
 /* CUSTOMIZED UI COMPONENTS ----------------------------------------- CUSTOMIZED UI COMPONENTS */
@@ -685,6 +689,7 @@ const SETTING_OPTIONS = [
       },
     ],
   },
+  { option: "Display", icon: <RiTv2Line />, content: <DisplayMenu /> },
 ];
 const SemiSideMenu = () => {
   return (

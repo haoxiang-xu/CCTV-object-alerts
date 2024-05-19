@@ -8,6 +8,7 @@ import {
   RiPauseLargeLine,
   RiPlayLargeLine,
   RiCheckLine,
+  RiImage2Line,
 } from "react-icons/ri";
 
 const socket = io("http://localhost:5000");
@@ -47,9 +48,8 @@ const FramesReceiver = () => {
 };
 /* {CONTROL PANEL} */
 const ControlPanel = () => {
-  const { setRefresh, isStreaming, setIsStreaming } = useContext(
-    frameReceiverControlContexts
-  );
+  const { setRefresh, isStreaming, setIsStreaming, flaskFramesRateCount } =
+    useContext(frameReceiverControlContexts);
   return (
     <div
       style={{
@@ -134,10 +134,55 @@ const ControlPanel = () => {
     </div>
   );
 };
+/* {INFOMATION PANEL} */
+const InformationPanel = () => {
+  const { flaskFramesRateCount } = useContext(frameReceiverControlContexts);
+
+  return (
+    <div
+      style={{
+        transition: "all 0.28s ease",
+        position: "absolute",
+        right: "6px",
+        top: "6px",
+        width: "128px",
+        maxWidth: "calc(100% - 32px)",
+        height: "40px",
+        borderRadius: "6px",
+        backdropFilter: "blur(12px)",
+        backgroundColor: "#b3b8c2b0",
+        overflow: "hidden",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: "9px",
+          right: "11px",
+          fontFamily: "Jost",
+          fontWeight: 300,
+          color: "#F5F5F5",
+        }}
+      >
+        <RiImage2Line
+          style={{
+            position: "absolute",
+            top: "3px",
+            right: "42px",
+            fontSize: "18px",
+            color: "#F5F5F5",
+          }}
+        />
+        FPS {Math.max(Math.round(flaskFramesRateCount), 1)}
+      </span>
+    </div>
+  );
+};
 /* CUSTOMIZED UI COMPONENTS ---------------------------------------------------------------------------------------- */
 
 const FlaskFramesReceiver = () => {
   const [flaskStatus, setFlaskStatus] = useState("");
+  const [flaskFramesRateCount, setFlaskFramesRateCount] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
   const [refresh, setRefresh] = useState(false);
 
@@ -146,6 +191,12 @@ const FlaskFramesReceiver = () => {
       setFlaskStatus(data.message);
     });
     return () => socket.off("status");
+  }, []);
+  useEffect(() => {
+    socket.on("processed_frame_rate_count", (data) => {
+      setFlaskFramesRateCount(data.processed_frame_rate_count);
+    });
+    return () => socket.off("processed_frame_rate_count");
   }, []);
   useEffect(() => {
     if (flaskStatus === "") return;
@@ -184,14 +235,22 @@ const FlaskFramesReceiver = () => {
         bottom: "0px",
         overflow: "hidden",
         backgroundColor: "#F1F1F1",
-        borderRadius: "5px",
+        borderRadius: "9px",
       }}
     >
       <frameReceiverControlContexts.Provider
-        value={{ isStreaming, setIsStreaming, refresh, setRefresh }}
+        value={{
+          isStreaming,
+          setIsStreaming,
+          refresh,
+          setRefresh,
+          flaskFramesRateCount,
+          setFlaskFramesRateCount,
+        }}
       >
         <FramesReceiver />
         <ControlPanel />
+        <InformationPanel />
       </frameReceiverControlContexts.Provider>
     </div>
   );

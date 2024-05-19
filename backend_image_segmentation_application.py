@@ -337,6 +337,7 @@ def capture_and_process(display_number=None,
     TOTAL_OBJECTS_REMOVED_BY_CONFIDENCE = 0
     TOTAL_OVERSIZE_OBJECTS_REMOVED = 0
     PREVIOUS_FRAME_TIME = time.time()
+    LAST_FRAME_TIME = time.time() 
     #OUTER STATIC VARIABLES ---------------------------------------------------------------------------------------------------------------
     
     #RECORDING VARIABLES ===============================================================================================RECORDING VARIABLES
@@ -377,8 +378,7 @@ def capture_and_process(display_number=None,
 
     #SOCKETIO STATUS UPDATE ------------------------------------------------------------------------------------------------SOCKETIO STATUS UPDATE
     socketio.emit('status', {'status': 'success', 'message': 'Model Loaded'})
-    
-    
+
     while True:
         if not isStreaming:
             continue
@@ -507,6 +507,8 @@ def capture_and_process(display_number=None,
                       f"\tOVERSIZE OBJECTS REMOVED: {TOTAL_OVERSIZE_OBJECTS_REMOVED}\n")
 
         cv2.waitKey(1000//max_frames_per_second)
+        socketio.emit('processed_frame_rate_count', {'processed_frame_rate_count': 1/(time.time()-LAST_FRAME_TIME)})
+        LAST_FRAME_TIME = time.time()
 
 @app.route('/request_frame')
 def request_frame():
