@@ -2,12 +2,15 @@ import React, { useEffect, useRef, useState, useContext } from "react";
 import { settingMenuContexts } from "../../CONTEXTs/settingMenuContexts";
 import {
   Collapse,
+  Collapsible,
   Form,
   Select,
   Button,
   Slider,
   Tooltip,
   Tag,
+  Input,
+  TagInput,
 } from "@douyinfe/semi-ui";
 import {
   IconPlus,
@@ -33,6 +36,10 @@ import {
   RiArrowUpSLine,
   RiArrowDownSLine,
   RiBrainLine,
+  RiAddLargeLine,
+  RiSearchLine,
+  RiDeleteBin6Line,
+  RiPriceTag3Line,
 } from "react-icons/ri";
 
 /* CONSTANTS ----------------------------------------------------------------------- CONSTANTS */
@@ -130,6 +137,299 @@ const COLORs = {
 };
 /* CONSTANTS --------------------------------------------------------------------------------- */
 
+/* SUBLEVEL MENU =============================================================== SUBLEVEL MENU */
+/* {ALERT} */
+const AlertsMenu = () => {
+  const {
+    addingNewAlertName,
+    setAddingNewAlertName,
+    addingNewAlertDetectingObjects,
+    setAddingNewAlertDetectingObjects,
+    addingNewAlertSendTo,
+    setAddingNewAlertSendTo,
+  } = useContext(settingMenuContexts);
+  const [addingNewAlert, setAddingNewAlert] = useState(false);
+  const handleAddingNewAlert = () => {
+    if (addingNewAlert) {
+      setAddingNewAlertName(null);
+      setAddingNewAlertDetectingObjects([]);
+      setAddingNewAlertSendTo([]);
+    }
+  };
+
+  return (
+    <>
+      <Form
+        style={{
+          overflow: "hidden",
+          borderRadius: "3px",
+          padding: "8px 12px 8px 12px",
+          fontFamily: "Jost",
+          fontSize: "15px",
+          fontWeight: "400",
+        }}
+      >
+        <Collapsible isOpen={addingNewAlert}>
+          <RiPriceTag3Line
+            style={{
+              marginRight: "2px",
+            }}
+          />
+          <span>New Alert Name</span>
+          <Input
+            style={{ marginBottom: "8px" }}
+            value={addingNewAlertName}
+            onChange={(v) => setAddingNewAlertName(v)}
+            prefix={
+              <span
+                style={{
+                  fontFamily: "Jost",
+                  fontSize: "15px",
+                  fontWeight: "300",
+                  marginLeft: "8px",
+                  marginRight: "4px",
+                  color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+                }}
+              >
+                Name
+              </span>
+            }
+          ></Input>
+          <RiSearchLine
+            style={{
+              marginRight: "2px",
+            }}
+          />
+          <span>Detecting Objects</span>
+          <CustomizedSelectInput
+            field="detecting_objects"
+            prefix="Objects"
+            options={YOLOV8_CAPTURING_OBJECTS}
+            value={addingNewAlertDetectingObjects}
+            onChange={(v) => setAddingNewAlertDetectingObjects(v)}
+            mode="multiple"
+          />
+          <RiMegaphoneLine
+            style={{
+              marginRight: "2px",
+            }}
+          />
+          <span>Send Alert To</span>
+          <TagInput
+            prefix={
+              <span
+                style={{
+                  fontFamily: "Jost",
+                  fontSize: "15px",
+                  fontWeight: "300",
+                  marginLeft: "8px",
+                  marginRight: "4px",
+                  color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+                  userSelect: "none",
+                }}
+              >
+                Send To
+              </span>
+            }
+            style={{ marginBottom: "16px" }}
+            value={addingNewAlertSendTo}
+            placeholder="sample@email.com"
+            onChange={(v) => setAddingNewAlertSendTo(v)}
+          />
+        </Collapsible>
+        {addingNewAlert ? (
+          <Button
+            style={{
+              translate: "all 0.3s ease-in-out",
+              width: addingNewAlert ? "50%" : "100%",
+              height: "64px",
+              padding: "10px",
+              borderRadius: "3px 0px 0px 3px",
+            }}
+            theme="light"
+            type="tertiary"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAddingNewAlert(!addingNewAlert);
+            }}
+            icon={<RiDeleteBin6Line />}
+          >
+            <span
+              style={{
+                fontFamily: "Jost",
+                fontSize: "15px",
+                fontWeight: "400",
+                marginLeft: "8px",
+                marginRight: "4px",
+                color: COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+                userSelect: "none",
+              }}
+            >
+              Cancel
+            </span>
+          </Button>
+        ) : null}
+        <Button
+          style={{
+            translate: "all 0.3s ease-in-out",
+            width: addingNewAlert ? "50%" : "100%",
+            borderRadius: addingNewAlert ? "0px 3px 3px 0px" : "3px",
+            height: "64px",
+            padding: "10px",
+          }}
+          theme={addingNewAlert ? "solid" : "light"}
+          type={addingNewAlert ? "danger" : "tertiary"}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAddingNewAlert();
+            setAddingNewAlert(!addingNewAlert);
+          }}
+          icon={<RiAddLargeLine />}
+        >
+          <span
+            style={{
+              fontFamily: "Jost",
+              fontSize: "15px",
+              fontWeight: "400",
+              marginLeft: "8px",
+              marginRight: "4px",
+              color: addingNewAlert
+                ? "#FFFFFF"
+                : COLORs.SELECT_INPUT_PREFIX_TEXT_COLOR,
+              userSelect: "none",
+            }}
+          >
+            {addingNewAlert ? "Add Alert" : "New Alert"}
+          </span>
+        </Button>
+      </Form>
+    </>
+  );
+};
+/* {INPUT FRAMES / PROCESSES} */
+const InputFramesMenu = () => {
+  const {
+    inputVideoSource,
+    setInputVideoSource,
+    inputVideoDimension,
+    setInputVideoDimension,
+    captureFramesPerSecond,
+    setCaptureFramesPerSecond,
+  } = useContext(settingMenuContexts);
+
+  return (
+    <Form
+      style={{
+        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
+        padding: "0px 10px 0px 10px",
+        margin: "0px -18px 0px 1px",
+      }}
+    >
+      <CustomizedSelectInput
+        field="input_video_source"
+        prefix="Capture Screen"
+        options={["DISPLAY 1", "DISPLAY 2"]}
+        value={inputVideoSource}
+        onChange={(v) => setInputVideoSource(v)}
+        mode="single"
+      />
+      <CustomizedSelectInput
+        field="input_video_dimension"
+        prefix="Frame Dimension"
+        options={["X1.00", "X0.75", "X0.50", "X0.25", "X0.10"]}
+        value={inputVideoDimension}
+        onChange={(v) => setInputVideoDimension(v)}
+        mode="single"
+      />
+      <CustomizedSelectInput
+        field="capture_frames_per_second"
+        prefix="Frames per Second"
+        options={["1", "2", "4", "8", "16", "32", "64", "128"]}
+        value={captureFramesPerSecond}
+        tooltip={
+          "Notice: this value won't garantee the actual capturing speed, The actual capturing frame rate depends on the performance of the system."
+        }
+        onChange={(v) => setCaptureFramesPerSecond(v)}
+        mode="single"
+      />
+    </Form>
+  );
+};
+/* {SEGMENTATION / PROCESSES} */
+const SegmentationMenu = () => {
+  const {
+    segmentationObjects,
+    setSegmentationObjects,
+    globalConfidenceLevel,
+    setGlobalConfidenceLevel,
+  } = useContext(settingMenuContexts);
+  return (
+    <Form
+      style={{
+        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
+        padding: "0px 10px 0px 10px",
+        margin: "0px -18px 0px 1px",
+      }}
+    >
+      <CustomizedSelectInput
+        field="segmentation_objects"
+        prefix="Targets"
+        options={YOLOV8_CAPTURING_OBJECTS}
+        value={segmentationObjects}
+        tooltip={
+          "Once you add a new object into the segmentation list, desired objects will appeared with a rectangle around them in the captured video."
+        }
+        onChange={(v) => setSegmentationObjects(v)}
+        mode="multiple"
+      />
+      <Tooltip
+        position="topLeft"
+        content={
+          <span
+            style={{
+              fontFamily: "Jost",
+              fontSize: "14px",
+              fontWeight: "300",
+              color: "#8C8C8C",
+              userSelect: "none",
+            }}
+          >
+            After changing the overall Confidence Level, the system will only
+            segment desired objects above this confidence level ( Notice: Once
+            you set this value, you WILL NOT BE ABLE to set the value to below
+            this OVER ALL CONFIDENCE LEVEL for each individual object ).
+          </span>
+        }
+        arrowPointAtCenter={false}
+      >
+        <span
+          style={{
+            marginLeft: "6px",
+            color: "#8C8C8C",
+            fontFamily: "Jost",
+            fontSize: "14px",
+            fontWeight: "300",
+            color: "#8C8C8C",
+            userSelect: "none",
+          }}
+        >
+          Over All Confidence Level
+        </span>
+      </Tooltip>
+      <Slider
+        style={{ width: "100%", marginRight: "-6px" }}
+        tipFormatter={(v) => `${v}%`}
+        value={globalConfidenceLevel}
+        onChange={(v) => setGlobalConfidenceLevel(v)}
+        getAriaValueText={(v) => `${v}%`}
+      />
+    </Form>
+  );
+};
+/* SUBLEVEL MENU ============================================================================= */
+
+/* CUSTOMIZED UI COMPONENTS ----------------------------------------- CUSTOMIZED UI COMPONENTS */
+/* {COLLAPSE PANEL} */
 const CusomizedCollapsePanel = ({
   root,
   index,
@@ -214,124 +514,7 @@ const CusomizedCollapsePanel = ({
     </Collapse.Panel>
   );
 };
-const InputFramesMenu = () => {
-  const {
-    inputVideoSource,
-    setInputVideoSource,
-    inputVideoDimension,
-    setInputVideoDimension,
-    captureFramesPerSecond,
-    setCaptureFramesPerSecond,
-  } = useContext(settingMenuContexts);
-
-  return (
-    <Form
-      style={{
-        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
-        padding: "0px 10px 0px 10px",
-        margin: "0px -18px 0px 1px",
-      }}
-    >
-      <CustomizedSelectInput
-        field="input_video_source"
-        prefix="Capture Screen"
-        options={["DISPLAY 1", "DISPLAY 2"]}
-        value={inputVideoSource}
-        onChange={(v) => setInputVideoSource(v)}
-        mode="single"
-      />
-      <CustomizedSelectInput
-        field="input_video_dimension"
-        prefix="Frame Dimension"
-        options={["X1.00", "X0.75", "X0.50", "X0.25", "X0.10"]}
-        value={inputVideoDimension}
-        onChange={(v) => setInputVideoDimension(v)}
-        mode="single"
-      />
-      <CustomizedSelectInput
-        field="capture_frames_per_second"
-        prefix="Frames per Second"
-        options={["1", "2", "4", "8", "16", "32", "64", "128"]}
-        value={captureFramesPerSecond}
-        tooltip={
-          "Notice: this value won't garantee the actual capturing speed, The actual capturing frame rate depends on the performance of the system."
-        }
-        onChange={(v) => setCaptureFramesPerSecond(v)}
-        mode="single"
-      />
-    </Form>
-  );
-};
-const SegmentationMenu = () => {
-  const {
-    segmentationObjects,
-    setSegmentationObjects,
-    globalConfidenceLevel,
-    setGlobalConfidenceLevel,
-  } = useContext(settingMenuContexts);
-  return (
-    <Form
-      style={{
-        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
-        padding: "0px 10px 0px 10px",
-        margin: "0px -18px 0px 1px",
-      }}
-    >
-      <CustomizedSelectInput
-        field="segmentation_objects"
-        prefix="Targets"
-        options={YOLOV8_CAPTURING_OBJECTS}
-        value={segmentationObjects}
-        tooltip={
-          "Once you add a new object into the segmentation list, desired objects will appeared with a rectangle around them in the captured video."
-        }
-        onChange={(v) => setSegmentationObjects(v)}
-        mode="multiple"
-      />
-      <Tooltip
-        position="topLeft"
-        content={
-          <span
-            style={{
-              fontFamily: "Jost",
-              fontSize: "14px",
-              fontWeight: "300",
-              color: "#8C8C8C",
-              userSelect: "none",
-            }}
-          >
-            After changing the overall Confidence Level, the system will only
-            segment desired objects above this confidence level ( Notice: Once
-            you set this value, you WILL NOT BE ABLE to set the value to below
-            this OVER ALL CONFIDENCE LEVEL for each individual object ).
-          </span>
-        }
-        arrowPointAtCenter={false}
-      >
-        <span
-          style={{
-            marginLeft: "6px",
-            color: "#8C8C8C",
-            fontFamily: "Jost",
-            fontSize: "14px",
-            fontWeight: "300",
-            color: "#8C8C8C",
-            userSelect: "none",
-          }}
-        >
-          Over All Confidence Level
-        </span>
-      </Tooltip>
-      <Slider
-        style={{ width: "100%", marginRight: "-6px" }}
-        tipFormatter={(v) => `${v}%`}
-        value={globalConfidenceLevel}
-        onChange={(v) => setGlobalConfidenceLevel(v)}
-        getAriaValueText={(v) => `${v}%`}
-      />
-    </Form>
-  );
-};
+/* {SELECT} */
 const CustomizedSelectInput = ({
   field,
   prefix,
@@ -486,9 +669,10 @@ const CustomizedSelectInput = ({
     </Select>
   );
 };
+/* CUSTOMIZED UI COMPONENTS ------------------------------------------------------------------ */
 
 const SETTING_OPTIONS = [
-  { option: "Alerts", icon: <RiMegaphoneLine /> },
+  { option: "Alerts", icon: <RiMegaphoneLine />, content: <AlertsMenu /> },
   {
     option: "Processes",
     icon: <RiWindow2Line />,
@@ -508,6 +692,10 @@ const SETTING_OPTIONS = [
   { option: "Models", icon: <RiBrainLine /> },
 ];
 const SemiSideMenu = () => {
+  const [addingNewAlertName, setAddingNewAlertName] = useState(null);
+  const [addingNewAlertDetectingObjects, setAddingNewAlertDetectingObjects] =
+    useState([]);
+  const [addingNewAlertSendTo, setAddingNewAlertSendTo] = useState([]);
   const [inputVideoSource, setInputVideoSource] = useState("DISPLAY 2");
   const [inputVideoDimension, setInputVideoDimension] = useState("X0.75");
   const [captureFramesPerSecond, setCaptureFramesPerSecond] = useState(16);
@@ -518,6 +706,12 @@ const SemiSideMenu = () => {
     <div>
       <settingMenuContexts.Provider
         value={{
+          addingNewAlertName,
+          setAddingNewAlertName,
+          addingNewAlertDetectingObjects,
+          setAddingNewAlertDetectingObjects,
+          addingNewAlertSendTo,
+          setAddingNewAlertSendTo,
           inputVideoSource,
           setInputVideoSource,
           inputVideoDimension,
@@ -535,7 +729,6 @@ const SemiSideMenu = () => {
           rel="stylesheet"
         ></link>
         <Collapse
-          accordion
           expandIcon={
             <RiArrowDownSLine
               style={{ color: COLORs.ROOT_COLLAPSE_TAG_TEXT_COLOR }}
