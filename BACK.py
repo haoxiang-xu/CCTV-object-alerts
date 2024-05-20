@@ -2,6 +2,7 @@ import os
 import cv2
 import mss
 import time
+import queue
 import torch
 import requests
 import datetime
@@ -32,9 +33,39 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # SYSTEM VARIABLES ------------------------------------------------------------------------------------------------SYSTEM VARIABLES
 isStreaming = False
+frame_queue_pointer = 512
+frame_queue = queue.Queue(maxsize=512)
+# SYSTEM VARIABLES ----------------------------------------------------------------------------------------------------------------
 
-def screen_capture(frames_per_second=64):
+# SYSTEM FUNCTIONS ------------------------------------------------------------------------------------------------SYSTEM FUNCTIONS
+# {FRAME QUEUE FUNCTIONS}
+def respond_with_frame_in_queue():
+    frame_list = list(frame_queue.queue)
+    # index = max(0, (len(frame_list) - 1) - (512- frame_queue_pointer))
+    index = max(0, int(frame_queue_pointer/512 * (len(frame_list) - 1)))
+    frame = frame_list[index]
+    return frame
+def append_frame_to_queue(frame):
+    if frame_queue.full():
+        frame_queue.get()
+    frame_queue.put(frame)
+# SYSTEM FUNCTIONS ----------------------------------------------------------------------------------------------------------------
+
+
+def screen_capture(max_frames_per_second=64):
+    LAST_FRAME_TIME = time.time() 
+    
+    #SOCKETIO STATUS UPDATE ------------------------------------------------------------------------------------------------SOCKETIO STATUS UPDATE
+    socketio.emit('status', {'status': 'success', 'message': 'Model Loaded'})
+    
     while True:
+        if not isStreaming:
+            if not frame_queue.empty():
+                frame = respond_with_frame_in_queue()
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                cv2.waitKey(1000//max_frames_per_second)
+            continue
         screen = ImageGrab.grab()
         screen_np = np.array(screen)
         screen_np = cv2.cvtColor(screen_np, cv2.COLOR_BGR2RGB)
@@ -46,8 +77,13 @@ def screen_capture(frames_per_second=64):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         
+        append_frame_to_queue(frame)
+        
         # Delay control for frame rate
-        cv2.waitKey(1000//frames_per_second)
+        cv2.waitKey(1000//max_frames_per_second)
+        socketio.emit('processed_frame_rate_count', {'processed_frame_rate_count': 1/(time.time()-LAST_FRAME_TIME)})
+        LAST_FRAME_TIME = time.time()
+        
 def capture_and_process(display_number=None, 
                         selected_window=None,
                         yolo_v8_size = "NANO", # [OPTIONS] "NANO", "SMALL", "MEDIUM", "LARGE", "EXTRA-LARGE"
@@ -381,6 +417,11 @@ def capture_and_process(display_number=None,
 
     while True:
         if not isStreaming:
+            if not frame_queue.empty():
+                frame = respond_with_frame_in_queue()
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                cv2.waitKey(1000//max_frames_per_second)
             continue
         #INTER STATIC VARIABLES ------------------------------------------------------------------------------------------------INTER STATIC VARIABLES
         OBJECT_REMOVED_FOR_THIS_FRAME = 0
@@ -486,6 +527,9 @@ def capture_and_process(display_number=None,
         
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+        append_frame_to_queue(frame)
+        
         if is_recording:
             if video_writer is None:  # Start new video writer
                 fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -514,15 +558,23 @@ def capture_and_process(display_number=None,
 def request_frame():
     max_frames_per_second = int(request.args.get('capture_frames_per_second', 16))
     object_confidence_threshold = float(request.args.get('global_confidence_level', 0.08))
-    return Response(capture_and_process(input_frame_dimension=(1920, 1080),
+    return Response(capture_and_process(yolo_v8_size = "LARGE",
                                         max_frames_per_second=max_frames_per_second,
-                                        object_confidence_threshold=object_confidence_threshold),
+                                        input_frame_dimension=(1920, 1080),
+                                        object_confidence_threshold=object_confidence_threshold,
+                                        collecting_person_patches="SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/12"
+                                        ),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+    # return Response(screen_capture(max_frames_per_second=max_frames_per_second), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @socketio.on('toggle_streaming_status')
 def toggle_streaming_status(condition):
     global isStreaming
     isStreaming = condition
+@socketio.on('frame_queue_pointer_status')
+def frame_queue_pointer_status(pointer):
+    global frame_queue_pointer
+    frame_queue_pointer = pointer
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True, use_reloader=False)

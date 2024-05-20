@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import io from "socket.io-client";
 import { frameReceiverControlContexts } from "../../CONTEXTs/frameReceiverControlContexts";
 import { settingMenuContexts } from "../../CONTEXTs/settingMenuContexts";
-import { Button, Toast } from "@douyinfe/semi-ui";
+import { Button, Toast, Tag, List, Slider } from "@douyinfe/semi-ui";
 import {
   RiRestartLine,
   RiPauseLargeLine,
@@ -13,12 +13,17 @@ import {
 
 const socket = io("http://localhost:5000");
 
+const FRAME_QUEUE_LENGTH = 512;
+
 /* CUSTOMIZED UI COMPONENTS ----------------------------------------------------------------CUSTOMIZED UI COMPONENTS */
 /* {FRAME RECEIVER} */
 const FramesReceiver = () => {
-  const { refresh } = useContext(frameReceiverControlContexts);
+  const { refresh } = useContext(
+    frameReceiverControlContexts
+  );
   const { captureFramesPerSecond, globalConfidenceLevel } =
     useContext(settingMenuContexts);
+
   useEffect(() => {
     const requestBody = {
       capture_frames_per_second: captureFramesPerSecond,
@@ -55,8 +60,14 @@ const FramesReceiver = () => {
 };
 /* {CONTROL PANEL} */
 const ControlPanel = () => {
-  const { setRefresh, isStreaming, setIsStreaming, flaskFramesRateCount } =
-    useContext(frameReceiverControlContexts);
+  const {
+    setRefresh,
+    isStreaming,
+    setIsStreaming,
+    flaskFramesRateCount,
+    frameQueuePointer,
+    setFrameQueuePointer,
+  } = useContext(frameReceiverControlContexts);
   return (
     <div
       style={{
@@ -103,6 +114,24 @@ const ControlPanel = () => {
           setIsStreaming(!isStreaming);
         }}
       ></Button>
+      <Slider
+        style={{
+          position: "absolute",
+          top: "4px",
+          left: "60px",
+          maxWidth: "calc(100% - 120px)",
+        }}
+        tipFormatter={null}
+        handleDot={{ size: "4px", color: "blue" }}
+        value={frameQueuePointer}
+        onChange={(value) => {
+          setIsStreaming(false);
+          setFrameQueuePointer(value);
+        }}
+        min={0}
+        max={FRAME_QUEUE_LENGTH}
+        step={1}
+      ></Slider>
       <Button
         icon={
           <RiRestartLine
@@ -121,6 +150,8 @@ const ControlPanel = () => {
         }}
         onClick={() => {
           setRefresh((prev) => !prev);
+          setIsStreaming(false);
+          setFrameQueuePointer(FRAME_QUEUE_LENGTH);
           Toast.info({
             icon: <RiRestartLine style={{ marginTop: "2px" }} />,
             content: (
@@ -145,15 +176,31 @@ const ControlPanel = () => {
 const InformationPanel = () => {
   const { flaskFramesRateCount } = useContext(frameReceiverControlContexts);
   const { displayFrameRate } = useContext(settingMenuContexts);
+  const [infoList, setInfoList] = useState(null);
 
-  return (
+  useEffect(() => {
+    if (!displayFrameRate) {
+      setInfoList(null);
+      return;
+    }
+    setInfoList([
+      displayFrameRate
+        ? {
+            title: "Frame Rate",
+            icon: <RiImage2Line />,
+            value: "FPS " + Math.max(Math.round(flaskFramesRateCount), 1),
+          }
+        : {},
+    ]);
+  }, [flaskFramesRateCount]);
+
+  return infoList && infoList.length > 0 ? (
     <div
       style={{
         transition: "all 0.28s ease",
         position: "absolute",
         right: "6px",
         top: "7px",
-        width: "83px",
         maxWidth: "calc(100% - 32px)",
         height: "32px",
         borderRadius: "2px",
@@ -162,31 +209,30 @@ const InformationPanel = () => {
         overflow: "hidden",
       }}
     >
-      {displayFrameRate ? (
-        <span
-          style={{
-            position: "absolute",
-            top: "5px",
-            right: "11px",
-            fontFamily: "Jost",
-            fontWeight: 300,
-            color: "#F5F5F5",
-            userSelect: "none",
-          }}
-        >
-          <RiImage2Line
-            style={{
-              position: "absolute",
-              top: "3px",
-              right: "42px",
-              fontSize: "18px",
-              color: "#F5F5F5",
-            }}
-          />
-          FPS {Math.max(Math.round(flaskFramesRateCount), 1)}
-        </span>
-      ) : null}
+      <List>
+        {infoList.map((item, index) => {
+          return (
+            <Tag
+              style={{
+                fontFamily: "Jost",
+                fontWeight: 300,
+                fontSize: "14px",
+                color: "#F5F5F5",
+                userSelect: "none",
+                margin: "4px 5px 4px 5px",
+                borderRadius: "1px",
+              }}
+              size="large"
+              prefixIcon={item.icon ? item.icon : null}
+            >
+              {item.value ? item.value : ""}
+            </Tag>
+          );
+        })}
+      </List>
     </div>
+  ) : (
+    <> </>
   );
 };
 /* CUSTOMIZED UI COMPONENTS ---------------------------------------------------------------------------------------- */
@@ -194,12 +240,15 @@ const InformationPanel = () => {
 const FlaskFramesReceiver = () => {
   const [flaskStatus, setFlaskStatus] = useState("");
   const [flaskFramesRateCount, setFlaskFramesRateCount] = useState(0);
+
+  const [frameQueuePointer, setFrameQueuePointer] =
+    useState(FRAME_QUEUE_LENGTH);
   const [isStreaming, setIsStreaming] = useState(false);
   const [refresh, setRefresh] = useState(false);
 
   useEffect(() => {
     socket.on("status", (data) => {
-      setFlaskStatus(data.message);
+      setFlaskStatus(data);
     });
     return () => socket.off("status");
   }, []);
@@ -210,31 +259,36 @@ const FlaskFramesReceiver = () => {
     return () => socket.off("processed_frame_rate_count");
   }, []);
   useEffect(() => {
-    if (flaskStatus === "") return;
-    Toast.info({
-      icon: <RiCheckLine style={{ marginTop: "2px" }} />,
-      content: (
-        <span
-          style={{
-            fontSize: "16px",
-            fontFamily: "Jost",
-            fontWeight: "400",
-          }}
-        >
-          {flaskStatus}
-        </span>
-      ),
-      duration: 3,
-    });
-    setFlaskStatus("");
+    if (flaskStatus) {
+      Toast.info({
+        icon: <RiCheckLine style={{ marginTop: "2px" }} />,
+        content: (
+          <span
+            style={{
+              fontSize: "16px",
+              fontFamily: "Jost",
+              fontWeight: "400",
+            }}
+          >
+            {flaskStatus.message}
+          </span>
+        ),
+        duration: 3,
+      });
+      setFlaskStatus("");
+    }
   }, [flaskStatus]);
   useEffect(() => {
     if (isStreaming) {
       socket.emit("toggle_streaming_status", true);
+      setFrameQueuePointer(FRAME_QUEUE_LENGTH);
     } else {
       socket.emit("toggle_streaming_status", false);
     }
   }, [isStreaming]);
+  useEffect(() => {
+    socket.emit("frame_queue_pointer_status", frameQueuePointer);
+  }, [frameQueuePointer]);
 
   return (
     <div
@@ -252,12 +306,16 @@ const FlaskFramesReceiver = () => {
     >
       <frameReceiverControlContexts.Provider
         value={{
+          flaskStatus,
+          setFlaskStatus,
+          flaskFramesRateCount,
+          setFlaskFramesRateCount,
+          frameQueuePointer,
+          setFrameQueuePointer,
           isStreaming,
           setIsStreaming,
           refresh,
           setRefresh,
-          flaskFramesRateCount,
-          setFlaskFramesRateCount,
         }}
       >
         <div

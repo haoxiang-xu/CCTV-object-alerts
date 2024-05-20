@@ -241,7 +241,7 @@ const AlertsMenu = () => {
               width: addingNewAlert ? "50%" : "100%",
               height: "64px",
               padding: "10px",
-              borderRadius: "5px 0px 0px 5px",
+              borderRadius: "3px 0px 0px 3px",
             }}
             theme="light"
             type="tertiary"
@@ -270,7 +270,7 @@ const AlertsMenu = () => {
           style={{
             translate: "all 0.3s ease-in-out",
             width: addingNewAlert ? "50%" : "100%",
-            borderRadius: addingNewAlert ? "0px 5px 5px 0px" : "5px",
+            borderRadius: addingNewAlert ? "0px 3px 3px 0px" : "3px",
             height: "64px",
             padding: "10px",
           }}
