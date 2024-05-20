@@ -11,11 +11,15 @@ function App() {
   const [addingNewAlertDetectingObjects, setAddingNewAlertDetectingObjects] =
     useState([]);
   const [addingNewAlertSendTo, setAddingNewAlertSendTo] = useState([]);
+
   const [inputVideoSource, setInputVideoSource] = useState("DISPLAY 2");
   const [inputVideoDimension, setInputVideoDimension] = useState("X0.75");
   const [captureFramesPerSecond, setCaptureFramesPerSecond] = useState(16);
+
   const [segmentationObjects, setSegmentationObjects] = useState(["Person"]);
   const [globalConfidenceLevel, setGlobalConfidenceLevel] = useState(16);
+
+  const [displayFrameRate, setDisplayFrameRate] = useState();
 
   return (
     <div className="App">
@@ -37,9 +41,12 @@ function App() {
           setSegmentationObjects,
           globalConfidenceLevel,
           setGlobalConfidenceLevel,
+          displayFrameRate,
+          setDisplayFrameRate,
         }}
       >
         <div
+          className="side-menu-container"
           style={{
             position: "absolute",
             width: "300px",
@@ -55,7 +62,7 @@ function App() {
           style={{
             position: "absolute",
             top: "12px",
-            left: "300px",
+            left: "305px",
             right: "12px",
             bottom: "12px",
           }}

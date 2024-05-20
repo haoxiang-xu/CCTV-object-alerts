@@ -144,6 +144,7 @@ const ControlPanel = () => {
 /* {INFOMATION PANEL} */
 const InformationPanel = () => {
   const { flaskFramesRateCount } = useContext(frameReceiverControlContexts);
+  const { displayFrameRate } = useContext(settingMenuContexts);
 
   return (
     <div
@@ -152,7 +153,7 @@ const InformationPanel = () => {
         position: "absolute",
         right: "6px",
         top: "7px",
-        width: "128px",
+        width: "83px",
         maxWidth: "calc(100% - 32px)",
         height: "32px",
         borderRadius: "2px",
@@ -161,27 +162,30 @@ const InformationPanel = () => {
         overflow: "hidden",
       }}
     >
-      <span
-        style={{
-          position: "absolute",
-          top: "4.5px",
-          right: "11px",
-          fontFamily: "Jost",
-          fontWeight: 300,
-          color: "#F5F5F5",
-        }}
-      >
-        <RiImage2Line
+      {displayFrameRate ? (
+        <span
           style={{
             position: "absolute",
-            top: "3px",
-            right: "42px",
-            fontSize: "18px",
+            top: "5px",
+            right: "11px",
+            fontFamily: "Jost",
+            fontWeight: 300,
             color: "#F5F5F5",
+            userSelect: "none",
           }}
-        />
-        FPS {Math.max(Math.round(flaskFramesRateCount), 1)}
-      </span>
+        >
+          <RiImage2Line
+            style={{
+              position: "absolute",
+              top: "3px",
+              right: "42px",
+              fontSize: "18px",
+              color: "#F5F5F5",
+            }}
+          />
+          FPS {Math.max(Math.round(flaskFramesRateCount), 1)}
+        </span>
+      ) : null}
     </div>
   );
 };

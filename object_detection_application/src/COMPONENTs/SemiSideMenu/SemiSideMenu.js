@@ -11,6 +11,8 @@ import {
   Tag,
   Input,
   TagInput,
+  Switch,
+  Typography,
 } from "@douyinfe/semi-ui";
 import {
   RiNotificationLine,
@@ -34,6 +36,7 @@ import {
   RiPriceTag3Line,
   RiCheckLine,
   RiCloseLine,
+  RiInformationLine,
 } from "react-icons/ri";
 
 /* CONSTANTS ----------------------------------------------------------------------- CONSTANTS */
@@ -400,11 +403,10 @@ const SegmentationMenu = () => {
         <span
           style={{
             marginLeft: "6px",
-            color: "#8C8C8C",
             fontFamily: "Jost",
             fontSize: "14px",
             fontWeight: "300",
-            color: "#8C8C8C",
+            color: COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR,
             userSelect: "none",
           }}
         >
@@ -423,7 +425,40 @@ const SegmentationMenu = () => {
 };
 /* {DISPLAY} */
 const DisplayMenu = () => {
-  return <span>Display FPS</span>;
+  const { displayFrameRate, setDisplayFrameRate } =
+    useContext(settingMenuContexts);
+  const { Title } = Typography;
+  return (
+    <Form
+      style={{
+        borderLeft: "1px solid " + COLORs.SUB_COLLAPSE_TAG_BORDER_COLOR,
+        padding: "0px 10px 0px 10px",
+        margin: "0px -18px 0px 1px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <Title
+          style={{
+            marginLeft: "6px",
+            marginRight: "6px",
+            fontFamily: "Jost",
+            fontSize: "15px",
+            fontWeight: "300",
+            color: COLORs.SUB_COLLAPSE_TAG_TEXT_COLOR,
+            userSelect: "none",
+            display: "inline",
+          }}
+        >
+          Display Current Frame Rate
+        </Title>
+        <Switch
+          style={{ marginTop: "0px" }}
+          checked={displayFrameRate}
+          onChange={setDisplayFrameRate}
+        ></Switch>
+      </div>
+    </Form>
+  );
 };
 /* SUBLEVEL MENU ============================================================================= */
 
@@ -689,7 +724,17 @@ const SETTING_OPTIONS = [
       },
     ],
   },
-  { option: "Display", icon: <RiTv2Line />, content: <DisplayMenu /> },
+  {
+    option: "Display",
+    icon: <RiTv2Line />,
+    suboptions: [
+      {
+        option: "Infomation Panel",
+        icon: <RiInformationLine />,
+        content: <DisplayMenu />,
+      },
+    ],
+  },
 ];
 const SemiSideMenu = () => {
   return (
