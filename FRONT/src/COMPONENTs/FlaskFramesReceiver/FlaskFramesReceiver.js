@@ -24,24 +24,24 @@ const FramesReceiver = () => {
   const { captureFramesPerSecond, globalConfidenceLevel } =
     useContext(settingMenuContexts);
 
-  useEffect(() => {
-    const requestBody = {
-      capture_frames_per_second: captureFramesPerSecond,
-      global_confidence_level: globalConfidenceLevel / 100,
-    };
-    const img = document.getElementById("flask-frames-receiver");
-    const container = document.getElementById(
-      "flask-frames-receiver-container"
-    );
-    img.src =
-      `http://localhost:5000/request_frame?` +
-      `capture_frames_per_second=${requestBody.capture_frames_per_second}` +
-      `&global_confidence_level=${requestBody.global_confidence_level}`;
-    img.onload = () => {
-      container.style.backgroundImage = `url(${img.src})`;
-      container.style.backgroundSize = "cover";
-    };
-  }, [refresh]);
+  // useEffect(() => {
+  //   const requestBody = {
+  //     capture_frames_per_second: captureFramesPerSecond,
+  //     global_confidence_level: globalConfidenceLevel / 100,
+  //   };
+  //   const img = document.getElementById("flask-frames-receiver");
+  //   const container = document.getElementById(
+  //     "flask-frames-receiver-container"
+  //   );
+  //   img.src =
+  //     `http://localhost:5000/request_frame?` +
+  //     `capture_frames_per_second=${requestBody.capture_frames_per_second}` +
+  //     `&global_confidence_level=${requestBody.global_confidence_level}`;
+  //   img.onload = () => {
+  //     container.style.backgroundImage = `url(${img.src})`;
+  //     container.style.backgroundSize = "cover";
+  //   };
+  // }, [refresh]);
 
   return (
     <img

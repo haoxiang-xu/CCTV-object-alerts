@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./ScreenRecorder.css";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:5000");
 
 const PauseIcon = require("../../ICONs/pause.png");
 const PlayIcon = require("../../ICONs/play.png");
@@ -46,34 +49,41 @@ const ScreenRecorder = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [processedFrame, setProcessedFrame] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
+  const [isInitialFrameSent, setIsInitialFrameSent] = useState(false);
 
   // Basic Functions ==========================================================================================
   const captureSingleFrame = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
-    console.log(video.videoWidth, video.videoHeight);
-    console.log(canvas.width, canvas.height);
+    //console.log(video.videoWidth, video.videoHeight);
+    //console.log(canvas.width, canvas.height);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
   };
-  const sendFrameForProcessing = async () => {
-    // const frameData = captureSingleFrame();
-    // const response = await fetch("http://localhost:5000/send_frame", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({ frame: frameData }),
-    // });
+  useEffect(() => {
+    socket.on("receive_frame", (data) => {
+      document.getElementById(
+        "processedFrame"
+      ).src = `data:image/png;base64,${data.frame}`;
+      sendFrameForProcessing();
+    });
 
-    // const data = await response.json();
-    // if (data.processed_frame) {
-    //   setProcessedFrame(`data:image/png;base64,${data.processed_frame}`);
-    // }
-    // console.log("[BACKEND] --- [", data.message, "]");
+    return () => {
+      socket.off("receive_frame");
+    };
+  }, []);
+  const sendFrameForProcessing = () => {
+    const frameData = captureSingleFrame();
+    socket.emit("send_frame", { frame: frameData });
   };
+  useEffect(() => {
+    if (!isInitialFrameSent) {
+      sendFrameForProcessing();
+      setIsInitialFrameSent(true);
+    }
+  }, [isInitialFrameSent]);
 
   // Event Handlers ============================================================================================
   const handleCaptureStarted = async () => {
@@ -152,8 +162,8 @@ const ScreenRecorder = () => {
         }}
       >
         <img
+          id="processedFrame"
           style={{ height: "100%", width: "100%" }}
-          src={processedFrame}
           alt="Processed Frame"
         />
       </div>

@@ -4,6 +4,7 @@ import mss
 import time
 import queue
 import torch
+import base64
 import requests
 import datetime
 import platform
@@ -23,7 +24,7 @@ from ultralytics.engine.results import Results
 from transformers import SegformerForSemanticSegmentation, SegformerImageProcessor
 from torchvision.models import resnet18, ResNet18_Weights, resnet50, ResNet50_Weights, resnet101, ResNet101_Weights
 from torchvision import transforms
-from flask import Flask, Response, request
+from flask import Flask, Response, request, jsonify
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
@@ -566,7 +567,35 @@ def request_frame():
                                         ),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
     # return Response(screen_capture(max_frames_per_second=max_frames_per_second), mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/send_frame', methods=['POST'])
+def send_frame():
+    try:
+        data = request.get_json()
+        frame_data = data['frame']
+        frame_bytes = base64.b64decode(frame_data)
+        nparr = np.frombuffer(frame_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        processed_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        ret, buffer = cv2.imencode('.jpg', processed_frame)
+        processed_frame_bytes = buffer.tobytes()
+        processed_frame_base64 = base64.b64encode(processed_frame_bytes).decode('utf-8')
+        return jsonify({
+            'message': 'Frame processed successfully',
+            'processed_frame': processed_frame_base64
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'message': 'Failed to process frame',
+            'error': str(e)
+        }), 500
 
+@socketio.on('send_frame')
+def handle_frame(data):
+    frame = data['frame']
+    # Process frame
+    processed_frame = frame
+    emit('receive_frame', {'frame': processed_frame})
 @socketio.on('toggle_streaming_status')
 def toggle_streaming_status(condition):
     global isStreaming
