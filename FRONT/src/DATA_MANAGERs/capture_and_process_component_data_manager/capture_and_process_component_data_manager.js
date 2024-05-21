@@ -5,6 +5,9 @@ import FlaskFramesReceiver from "../../COMPONENTs/FlaskFramesReceiver/FlaskFrame
 import { settingMenuContexts } from "../../CONTEXTs/settingMenuContexts";
 
 const CaptureAndProcessComponentDataManager = () => {
+  const videoRef = useRef(null);
+  const [videoSourceIsCapturing, setVideoSourceIsCapturing] = useState(false);
+
   const [addingNewAlertName, setAddingNewAlertName] = useState(null);
   const [addingNewAlertDetectingObjects, setAddingNewAlertDetectingObjects] =
     useState([]);
@@ -22,6 +25,9 @@ const CaptureAndProcessComponentDataManager = () => {
   return (
     <settingMenuContexts.Provider
       value={{
+        videoRef,
+        videoSourceIsCapturing,
+        setVideoSourceIsCapturing,
         addingNewAlertName,
         setAddingNewAlertName,
         addingNewAlertDetectingObjects,

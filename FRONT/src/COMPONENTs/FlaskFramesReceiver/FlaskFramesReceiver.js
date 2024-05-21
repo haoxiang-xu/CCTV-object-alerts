@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import io from "socket.io-client";
 import { frameReceiverControlContexts } from "../../CONTEXTs/frameReceiverControlContexts";
 import { settingMenuContexts } from "../../CONTEXTs/settingMenuContexts";
@@ -18,30 +18,70 @@ const FRAME_QUEUE_LENGTH = 512;
 /* CUSTOMIZED UI COMPONENTS ----------------------------------------------------------------CUSTOMIZED UI COMPONENTS */
 /* {FRAME RECEIVER} */
 const FramesReceiver = () => {
-  const { refresh } = useContext(
-    frameReceiverControlContexts
-  );
-  const { captureFramesPerSecond, globalConfidenceLevel } =
-    useContext(settingMenuContexts);
+  const { isStreaming, canvasRef } = useContext(frameReceiverControlContexts);
+  const { videoRef, videoSourceIsCapturing } = useContext(settingMenuContexts);
+
+  const [isInitialFrameSent, setIsInitialFrameSent] = useState(false);
+  const captureSingleFrame = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL("image/png");
+    return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
+  };
+  const sendFrameForProcessing = () => {
+    const frameData = captureSingleFrame();
+    if (frameData && frameData.length > 0) {
+      socket.emit("send_frame", {
+        frame: frameData,
+        width: canvasRef.current.videoWidth,
+        height: canvasRef.current.videoHeight,
+      });
+    }
+  };
 
   useEffect(() => {
-    const requestBody = {
-      capture_frames_per_second: captureFramesPerSecond,
-      global_confidence_level: globalConfidenceLevel / 100,
-    };
-    const img = document.getElementById("flask-frames-receiver");
-    const container = document.getElementById(
-      "flask-frames-receiver-container"
-    );
-    img.src =
-      `http://localhost:5000/request_frame?` +
-      `capture_frames_per_second=${requestBody.capture_frames_per_second}` +
-      `&global_confidence_level=${requestBody.global_confidence_level}`;
-    img.onload = () => {
+    if (isStreaming && videoSourceIsCapturing && !isInitialFrameSent) {
+      sendFrameForProcessing();
+      setIsInitialFrameSent(true);
+    }
+  }, [isStreaming, videoSourceIsCapturing]);
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    video.addEventListener("loadedmetadata", () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const drawFrame = () => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(drawFrame);
+      };
+      drawFrame();
+    });
+  }, []);
+  useEffect(() => {
+    socket.on("receive_frame", (data) => {
+      const img = document.getElementById("flask-frames-receiver");
+      const container = document.getElementById(
+        "flask-frames-receiver-container"
+      );
+      img.src = `data:image/png;base64,${data.frame}`;
       container.style.backgroundImage = `url(${img.src})`;
       container.style.backgroundSize = "cover";
+
+      sendFrameForProcessing();
+    });
+    return () => {
+      socket.off("receive_frame");
     };
-  }, [refresh]);
+  }, []);
 
   return (
     <img
@@ -238,6 +278,12 @@ const InformationPanel = () => {
 /* CUSTOMIZED UI COMPONENTS ---------------------------------------------------------------------------------------- */
 
 const FlaskFramesReceiver = () => {
+  const { videoRef } = useContext(settingMenuContexts);
+  const canvasRef = useRef(null);
+  const [canvasDimensions, setCanvasDimensions] = useState({
+    width: 300,
+    height: 150,
+  });
   const [flaskStatus, setFlaskStatus] = useState("");
   const [flaskFramesRateCount, setFlaskFramesRateCount] = useState(0);
 
@@ -258,6 +304,15 @@ const FlaskFramesReceiver = () => {
     });
     return () => socket.off("processed_frame_rate_count");
   }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      setCanvasDimensions({
+        width: videoRef.current.videoWidth,
+        height: videoRef.current.videoHeight,
+      });
+    }
+  }, [videoRef.current]);
   useEffect(() => {
     if (flaskStatus) {
       Toast.info({
@@ -304,8 +359,21 @@ const FlaskFramesReceiver = () => {
         overflow: "hidden",
       }}
     >
+      <video ref={videoRef} autoPlay playsInline style={{ display: "none" }} />
+      <canvas
+        ref={canvasRef}
+        width={1920}
+        height={1080}
+        style={{
+          width: `${videoRef.current?.videoWidth}px`,
+          height: `${videoRef.current?.videoHeight}px`,
+          display: "none",
+        }}
+      ></canvas>
       <frameReceiverControlContexts.Provider
         value={{
+          videoRef,
+          canvasRef,
           flaskStatus,
           setFlaskStatus,
           flaskFramesRateCount,

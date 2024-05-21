@@ -555,43 +555,50 @@ def capture_and_process(display_number=None,
         socketio.emit('processed_frame_rate_count', {'processed_frame_rate_count': 1/(time.time()-LAST_FRAME_TIME)})
         LAST_FRAME_TIME = time.time()
 
-@app.route('/request_frame')
-def request_frame():
-    max_frames_per_second = int(request.args.get('capture_frames_per_second', 16))
-    object_confidence_threshold = float(request.args.get('global_confidence_level', 0.08))
-    return Response(capture_and_process(yolo_v8_size = "LARGE",
-                                        max_frames_per_second=max_frames_per_second,
-                                        input_frame_dimension=(1920, 1080),
-                                        object_confidence_threshold=object_confidence_threshold,
-                                        collecting_person_patches="SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/12"
-                                        ),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+# @app.route('/request_frame')
+# def request_frame():
+#     max_frames_per_second = int(request.args.get('capture_frames_per_second', 16))
+#     object_confidence_threshold = float(request.args.get('global_confidence_level', 0.08))
+#     return Response(capture_and_process(yolo_v8_size = "LARGE",
+#                                         max_frames_per_second=max_frames_per_second,
+#                                         input_frame_dimension=(1920, 1080),
+#                                         object_confidence_threshold=object_confidence_threshold,
+#                                         collecting_person_patches="SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/12"
+#                                         ),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
     # return Response(screen_capture(max_frames_per_second=max_frames_per_second), mimetype='multipart/x-mixed-replace; boundary=frame')
-@app.route('/send_frame', methods=['POST'])
-def send_frame():
-    try:
-        data = request.get_json()
-        frame_data = data['frame']
-        frame_bytes = base64.b64decode(frame_data)
-        nparr = np.frombuffer(frame_bytes, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        processed_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        ret, buffer = cv2.imencode('.jpg', processed_frame)
-        processed_frame_bytes = buffer.tobytes()
-        processed_frame_base64 = base64.b64encode(processed_frame_bytes).decode('utf-8')
-        return jsonify({
-            'message': 'Frame processed successfully',
-            'processed_frame': processed_frame_base64
-        })
+# @app.route('/send_frame', methods=['POST'])
+# def send_frame():
+#     try:
+#         data = request.get_json()
+#         frame_data = data['frame']
+#         frame_bytes = base64.b64decode(frame_data)
+#         nparr = np.frombuffer(frame_bytes, np.uint8)
+#         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+#         processed_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#         ret, buffer = cv2.imencode('.jpg', processed_frame)
+#         processed_frame_bytes = buffer.tobytes()
+#         processed_frame_base64 = base64.b64encode(processed_frame_bytes).decode('utf-8')
+#         return jsonify({
+#             'message': 'Frame processed successfully',
+#             'processed_frame': processed_frame_base64
+#         })
     
-    except Exception as e:
-        return jsonify({
-            'message': 'Failed to process frame',
-            'error': str(e)
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             'message': 'Failed to process frame',
+#             'error': str(e)
+#         }), 500
 
+
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
 @socketio.on('send_frame')
-def handle_frame(data):
+def send_frame(data):
     frame = data['frame']
     # Process frame
     processed_frame = frame
@@ -606,4 +613,4 @@ def frame_queue_pointer_status(pointer):
     frame_queue_pointer = pointer
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True, use_reloader=False)
+    socketio.run(app, host='0.0.0.0', port=5000)

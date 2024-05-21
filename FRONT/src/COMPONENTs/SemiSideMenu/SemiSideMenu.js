@@ -307,6 +307,9 @@ const AlertsMenu = () => {
 /* {INPUT FRAMES / PROCESSES} */
 const InputFramesMenu = () => {
   const {
+    videoRef,
+    videoSourceIsCapturing,
+    setVideoSourceIsCapturing,
     inputVideoSource,
     setInputVideoSource,
     inputVideoDimension,
@@ -314,6 +317,28 @@ const InputFramesMenu = () => {
     captureFramesPerSecond,
     setCaptureFramesPerSecond,
   } = useContext(settingMenuContexts);
+
+  const handleSelectVideoSource = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      console.log("[ERROR] --- [Screen recording is not supported]");
+      return;
+    }
+    const displayMediaOptions = {
+      video: {
+        cursor: "always",
+      },
+      audio: false,
+    };
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia(
+        displayMediaOptions
+      );
+      videoRef.current.srcObject = stream;
+      setVideoSourceIsCapturing(true);
+    } catch (err) {
+      console.log("[ERROR] --- [", err, "]");
+    }
+  };
 
   return (
     <Form
@@ -331,6 +356,7 @@ const InputFramesMenu = () => {
         onChange={(v) => setInputVideoSource(v)}
         mode="single"
       />
+      <Button onClick={handleSelectVideoSource}>Get Video Source</Button>
       <CustomizedSelectInput
         field="input_video_dimension"
         prefix="Frame Dimension"

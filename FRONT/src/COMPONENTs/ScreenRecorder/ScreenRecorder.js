@@ -56,8 +56,6 @@ const ScreenRecorder = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
-    //console.log(video.videoWidth, video.videoHeight);
-    //console.log(canvas.width, canvas.height);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
@@ -87,10 +85,6 @@ const ScreenRecorder = () => {
 
   // Event Handlers ============================================================================================
   const handleCaptureStarted = async () => {
-    setTimeout(() => {
-      sendFrameForProcessing();
-    }, 6000);
-
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       console.log("[ERROR] --- [Screen recording is not supported]");
       return;
@@ -144,6 +138,7 @@ const ScreenRecorder = () => {
           className="screen-recoder-player-container0502"
           autoPlay
           playsInline
+          style={{ display: "none" }}
         />
         <canvas
           ref={canvasRef}
