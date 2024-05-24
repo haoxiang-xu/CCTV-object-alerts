@@ -1,0 +1,16 @@
+opencv-python
+mss
+torch
+numpy
+requests
+Pillow
+matplotlib
+screeninfo
+pyautogui
+pygetwindow
+customtkinter
+flask
+flask-socketio
+flask-cors
+transformers
+ultralytics

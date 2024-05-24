@@ -4,18 +4,10 @@ import mss
 import time
 import queue
 import torch
-import base64
-import requests
 import datetime
 import platform
-import pyautogui
-import screeninfo
 import numpy as np
-import tkinter as tk
-import customtkinter as ctk
 import pygetwindow as gw
-from tkinter import ttk, messagebox
-from io import BytesIO
 import matplotlib.pyplot as plt
 from PIL import ImageGrab, Image, ImageDraw, ImageFont, ImageTk
 from PIL.Image import Resampling
@@ -566,30 +558,7 @@ def capture_and_process(display_number=None,
 #                                         collecting_person_patches="SAVE_OFFICERS_ONLY_EVERY_N_SECONDS/12"
 #                                         ),
 #                     mimetype='multipart/x-mixed-replace; boundary=frame')
-    # return Response(screen_capture(max_frames_per_second=max_frames_per_second), mimetype='multipart/x-mixed-replace; boundary=frame')
-# @app.route('/send_frame', methods=['POST'])
-# def send_frame():
-#     try:
-#         data = request.get_json()
-#         frame_data = data['frame']
-#         frame_bytes = base64.b64decode(frame_data)
-#         nparr = np.frombuffer(frame_bytes, np.uint8)
-#         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-#         processed_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#         ret, buffer = cv2.imencode('.jpg', processed_frame)
-#         processed_frame_bytes = buffer.tobytes()
-#         processed_frame_base64 = base64.b64encode(processed_frame_bytes).decode('utf-8')
-#         return jsonify({
-#             'message': 'Frame processed successfully',
-#             'processed_frame': processed_frame_base64
-#         })
-    
-#     except Exception as e:
-#         return jsonify({
-#             'message': 'Failed to process frame',
-#             'error': str(e)
-#         }), 500
-
+#     return Response(screen_capture(max_frames_per_second=max_frames_per_second), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @socketio.on('connect')
 def handle_connect():

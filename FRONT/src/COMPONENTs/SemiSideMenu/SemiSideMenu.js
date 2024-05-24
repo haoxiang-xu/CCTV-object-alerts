@@ -356,7 +356,23 @@ const InputFramesMenu = () => {
         onChange={(v) => setInputVideoSource(v)}
         mode="single"
       />
-      <Button onClick={handleSelectVideoSource}>Get Video Source</Button>
+      <Button
+        style={{ marginBottom: "8px", width: "100%" }}
+        onClick={handleSelectVideoSource}
+      >
+        <span
+          style={{
+            fontFamily: "Jost",
+            fontSize: "15px",
+            fontWeight: "400",
+            marginLeft: "8px",
+            marginRight: "4px",
+            userSelect: "none",
+          }}
+        >
+          Get Video Source
+        </span>
+      </Button>
       <CustomizedSelectInput
         field="input_video_dimension"
         prefix="Frame Dimension"
