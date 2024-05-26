@@ -568,10 +568,7 @@ def handle_disconnect():
     print('Client disconnected')
 @socketio.on('send_frame')
 def send_frame(data):
-    frame = data['frame']
-    # Process frame
-    processed_frame = frame
-    emit('receive_frame', {'frame': processed_frame})
+    emit('receive_frame', {'frame': data}, binary=True)
 @socketio.on('toggle_streaming_status')
 def toggle_streaming_status(condition):
     global isStreaming

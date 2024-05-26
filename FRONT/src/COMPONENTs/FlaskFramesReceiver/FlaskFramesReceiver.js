@@ -21,34 +21,28 @@ const FramesReceiver = () => {
   const { isStreaming, canvasRef } = useContext(frameReceiverControlContexts);
   const { videoRef, videoSourceIsCapturing } = useContext(settingMenuContexts);
 
-  const [isFrameReceived, setIsFrameReceived] = useState(true);
-  const captureSingleFrame = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    const context = canvas.getContext("2d");
-
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const dataURL = canvas.toDataURL("image/png");
-    return canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
-  };
+  const [canvasFrame, setCanvasFrame] = useState(null);
+  const [isFrameReceived, setIsFrameReceived] = useState(false);
   const sendFrameForProcessing = () => {
-    const frameData = captureSingleFrame();
-    if (frameData && frameData.length > 0) {
-      socket.emit("send_frame", {
-        frame: frameData,
-        width: canvasRef.current.videoWidth,
-        height: canvasRef.current.videoHeight,
-      });
+    const canvas = canvasRef.current;
+    canvas.toBlob(
+      (blob) => {
+        socket.emit("send_frame", blob);
+      },
+      "image/jpeg",
+      0.1
+    );
+  };
+  const arrayBufferToBase64 = (buffer) => {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    return window.btoa(binary);
   };
 
-  useEffect(() => {
-    if (isStreaming && videoSourceIsCapturing) {
-      sendFrameForProcessing();
-    }
-  }, [isStreaming, videoSourceIsCapturing, isFrameReceived]);
   useEffect(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -61,29 +55,42 @@ const FramesReceiver = () => {
       const drawFrame = () => {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         requestAnimationFrame(drawFrame);
+        setCanvasFrame({
+          frame: canvas
+            .toDataURL("image/png")
+            .replace("data:image/png;base64,", ""),
+        });
       };
       drawFrame();
     });
   }, []);
   useEffect(() => {
+    if (isStreaming && videoSourceIsCapturing && !isFrameReceived) {
+      sendFrameForProcessing();
+    }
     const processFrame = (data) => {
       const img = document.getElementById("flask-frames-receiver");
       const container = document.getElementById(
         "flask-frames-receiver-container"
       );
-      img.src = `data:image/png;base64,${data.frame}`;
-      container.style.backgroundImage = `url(${img.src})`;
-      container.style.backgroundSize = "cover";
+      if (data.frame) {
+        const base64String = arrayBufferToBase64(data.frame);
+        img.src = `data:image/png;base64,${base64String}`;
+        container.style.backgroundImage = `url(${img.src})`;
+        container.style.backgroundSize = "cover";
+      } else {
+        console.error("[ERROR] No frame received");
+      }
       sendFrameForProcessing();
     };
     socket.on("receive_frame", (data) => {
       processFrame(data);
+      setIsFrameReceived(true);
     });
     return () => {
       socket.off("receive_frame");
     };
   }, []);
-
   return (
     <img
       style={{
@@ -349,15 +356,7 @@ const FlaskFramesReceiver = () => {
       }}
     >
       <video ref={videoRef} autoPlay playsInline style={{ display: "none" }} />
-      <canvas
-        ref={canvasRef}
-        width={1920}
-        height={1080}
-        style={{
-          width: `${videoRef.current?.videoWidth}px`,
-          height: `${videoRef.current?.videoHeight}px`,
-        }}
-      ></canvas>
+      <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
       <frameReceiverControlContexts.Provider
         value={{
           videoRef,
